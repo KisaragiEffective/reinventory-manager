@@ -130,6 +130,7 @@ impl<'de> Deserialize<'de> for RecordType {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename = "camelCase")]
 /// https://neos-api.polylogix.studio/#tag/Records/operation/getRecordAtPath
 pub struct PathPointedRecordResponse {
     id: RecordId,
