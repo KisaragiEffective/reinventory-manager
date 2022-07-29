@@ -1,5 +1,5 @@
 use reqwest::header::AUTHORIZATION;
-use log::debug;
+use log::{debug, warn};
 use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
