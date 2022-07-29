@@ -5,7 +5,7 @@ use email_address::EmailAddress;
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::Error;
 use anyhow::ensure;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
@@ -22,10 +22,11 @@ impl FromStr for UserId {
 
 // TODO: "R-" {GUID}という形式に沿ってパースする
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
-struct RecordId(String);
+/// This is thin pointer to the actual Record. It is unique, and has one-by-one relation with Record.
+pub struct RecordId(String);
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
-struct GroupId(String);
+pub struct GroupId(String);
 
 impl FromStr for GroupId {
     type Err = anyhow::Error;
@@ -114,13 +115,13 @@ struct RecordGetBody {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
-enum RecordOwner {
+pub enum RecordOwner {
     User(UserId),
     Group(GroupId),
 }
 
-#[derive(Serialize, Debug, Clone, Eq, PartialEq)]
-enum RecordType {
+#[derive(Serialize, Debug, Eq, PartialEq, Copy, Clone)]
+pub enum RecordType {
     Directory,
     Object,
     Texture,
@@ -141,22 +142,91 @@ impl<'de> Deserialize<'de> for RecordType {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 // fields are only for serde-integrations. I'd like to export them in JSON.
 #[allow(dead_code)]
 /// https://neos-api.polylogix.studio/#tag/Records/operation/getRecordAtPath
-pub struct RecordWithoutDescription {
-    id: RecordId,
-    owner_id: RecordOwner,
-    /// neosdb:///...
-    asset_uri: Url,
-    name: String,
-    record_type: RecordType,
-    owner_name: String,
-    tags: Vec<String>,
-    path: String,
-    is_public: bool,
+pub struct Record {
+    pub id: RecordId,
+    /// ## Format
+    /// `neosdb:///...`, in URI format
+    ///
+    /// ## Note
+    /// This field is absent when self.record_type == "directory"
+    #[serde(default)]
+    pub asset_uri: Option<Url>,
+    pub global_version: i32,
+    pub local_version: i32,
+    #[serde(rename = "lastModifyingUserId")]
+    pub last_update_by: UserId,
+    #[serde(rename = "lastModifyingMachineId", default)]
+    // Essential Toolsだと欠けている
+    pub last_update_machine: Option<String>,
+    pub name: String,
+    pub record_type: RecordType,
+    pub owner_name: String,
+    #[serde(default)]
+    // Essential Toolsだと欠けている
+    pub tags: Vec<String>,
+    pub path: String,
+    pub is_public: bool,
+    pub is_for_patrons: bool,
+    pub is_listed: bool,
+    pub is_deleted: bool,
+    #[serde(default)]
+    // Essential Toolsだと欠けている
+    pub thumbnail_uri: Option<Url>,
+    #[serde(rename = "creationTime", default)]
+    // Essential Toolsだと欠けている
+    created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "lastModificationTime", deserialize_with = "fallback_to_utc")]
+    updated_at: DateTime<Utc>,
+    pub random_order: i32,
+    pub visits: i32,
+    pub rating: f64,
+    pub owner_id: RecordOwner,
+    #[serde(default)]
+    pub submissions: Vec<Submission>
+}
+
+/// Essential Toolsだとタイムゾーンが欠けているのでパースに失敗する (?!)
+fn fallback_to_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    /// see https://users.rust-lang.org/t/serde-clone-deserializer/49568/3
+    enum LocalHack {
+        WithTimeZone(DateTime<Utc>),
+        WithoutTimeZone(NaiveDateTime),
+    }
+
+    let utc_date_time = match LocalHack::deserialize(deserializer)? {
+        LocalHack::WithTimeZone(utc_date_time) => utc_date_time,
+        LocalHack::WithoutTimeZone(naive_date_time) => {
+            let dt = naive_date_time;
+            Utc.from_local_datetime(&dt).unwrap()
+        }
+    };
+
+    Ok(utc_date_time)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Submission {
+    id: String,
+    owner_id: UserId,
+    target_record_id: RecordId,
+    submission_time: DateTime<Utc>,
+    submitted_by_id: String,
+    submitted_by_name: String,
+    #[serde(rename = "featured")]
+    is_featured: bool,
+    featured_by_user_id: String,
+    #[serde(default)]
+    featured_timestamp: Option<DateTime<Utc>>
 }
 
 #[derive(Deserialize, Serialize)]
