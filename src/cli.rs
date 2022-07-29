@@ -44,8 +44,12 @@ pub enum ToolSubCommand {
         max_depth: usize,
         #[clap(default_values_t = Vec::<String>::new())]
         base_dir: Vec<String>,
+    },
+    Metadata {
         #[clap(short = 'u', long)]
         target_user: Option<UserId>,
+        #[clap(default_values_t = Vec::<String>::new())]
+        base_dir: Vec<String>,
     }
 }
 

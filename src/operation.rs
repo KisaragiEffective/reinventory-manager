@@ -82,4 +82,29 @@ impl Operation {
 
         res
     }
+
+    pub async fn get_directory_metadata(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
+        // NOTE:
+        // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
+        let client = reqwest::Client::new();
+        let path = path.join("/");
+        let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/root/{path}");
+
+        debug!("endpoint: {endpoint}", endpoint = &endpoint);
+        let mut res = client.get(endpoint);
+
+        if let Some(authorization_info) = authorization_info {
+            res = res.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+        }
+
+        let res = res
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        res
+    }
 }

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.58"
-chrono = "0.4.19"
+chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.2.15", features = ["derive"] }
 derive_more = "0.99.17"
 email_address = "0.2.1"

@@ -35,6 +35,16 @@ async fn main() {
                 println!("{:?}", x);
             }
         }
+        ToolSubCommand::Metadata { target_user, base_dir } => {
+            println!("Directory metadata:");
+            let owner_id = target_user.clone().unwrap_or_else(|| login_res.clone().unwrap().user_id);
+            let res = Operation::get_directory_metadata(
+                owner_id,
+                base_dir.clone(),
+                &login_res.clone().map(|a| a.using_token),
+            ).await;
+            println!("{:?}", serde_json::to_string(&res));
+        }
     }
 
     if let Some(session) = login_res {

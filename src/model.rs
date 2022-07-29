@@ -22,8 +22,17 @@ impl FromStr for UserId {
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct RecordId(String);
 
-#[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct GroupId(String);
+
+impl FromStr for GroupId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ensure!(s.starts_with("G-"), "A valid GroupId must be prefixed with `G-`");
+        Ok(Self(s.to_string()))
+    }
+}
 
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct Password(String);
@@ -102,6 +111,7 @@ struct RecordGetBody {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
 enum RecordOwner {
     User(UserId),
     Group(GroupId),
@@ -144,4 +154,29 @@ pub struct PathPointedRecordResponse {
     tags: Vec<String>,
     path: String,
     is_public: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirectoryMetadata {
+    id: RecordId,
+    global_version: u32,
+    local_version: u32,
+    #[serde(rename = "lastModifyingUserId")]
+    last_modify_user: UserId,
+    #[serde(rename = "lastModifyingMachineId")]
+    last_modify_machine_user: String,
+    name: String,
+    // recordType is always directory, so omitted.
+    owner_name: String,
+    path: String,
+    is_public: bool,
+    is_for_patrons: bool,
+    is_listed: bool,
+    is_deleted: bool,
+    #[serde(rename = "creationTime")]
+    created_at: DateTime<Utc>,
+    #[serde(rename = "lastModificationTime")]
+    updated_at: DateTime<Utc>,
+
 }
