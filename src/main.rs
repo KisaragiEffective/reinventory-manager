@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 use clap::Parser;
-use log::{debug, info};
+use log::{debug, info, warn};
 use crate::cli::{AfterArgs, Args, ARGS, ToolSubCommand};
 use crate::operation::Operation;
 
@@ -31,6 +31,11 @@ async fn main() {
                 base_dir.clone(),
                 &login_res.clone().map(|a| a.using_token),
             ).await;
+
+            debug!("record count: {len}", len = xs.len());
+            if xs.is_empty() {
+                warn!("response is empty! You may want to login?");
+            }
             for x in xs {
                 println!("{}", serde_json::to_string(&x).unwrap());
             }
