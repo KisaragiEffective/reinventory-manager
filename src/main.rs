@@ -26,8 +26,7 @@ async fn main() {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
             println!("Inventory:");
             let xs = Operation::get_directory_items(
-                // TODO: ここのエラー表示が終わってるので要改善
-                target_user.clone().unwrap_or_else(|| login_res.clone().unwrap().user_id),
+                target_user.clone().or_else(|| login_res.clone().map(|a| a.user_id)).expect("To perform this action, I must identify you."),
                 base_dir.clone(),
                 &login_res.clone().map(|a| a.using_token),
             ).await;
