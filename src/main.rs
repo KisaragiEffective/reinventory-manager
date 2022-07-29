@@ -32,7 +32,7 @@ async fn main() {
                 &login_res.clone().map(|a| a.using_token),
             ).await;
             for x in xs {
-                println!("{:?}", x);
+                println!("{}", serde_json::to_string(&x).unwrap());
             }
         }
         ToolSubCommand::Metadata { target_user, base_dir } => {
@@ -43,7 +43,7 @@ async fn main() {
                 base_dir.clone(),
                 &login_res.clone().map(|a| a.using_token),
             ).await;
-            println!("{:?}", serde_json::to_string(&res));
+            println!("{}", serde_json::to_string(&res).unwrap());
         }
     }
 

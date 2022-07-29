@@ -112,14 +112,14 @@ struct RecordGetBody {
     record_id: RecordId,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 enum RecordOwner {
     User(UserId),
     Group(GroupId),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Serialize, Debug, Clone, Eq, PartialEq)]
 enum RecordType {
     Directory,
     Object,
@@ -141,7 +141,7 @@ impl<'de> Deserialize<'de> for RecordType {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 // fields are only for serde-integrations. I'd like to export them in JSON.
 #[allow(dead_code)]
