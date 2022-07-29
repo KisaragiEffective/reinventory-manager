@@ -20,7 +20,7 @@ impl FromStr for UserId {
     }
 }
 
-// TODO: "R-" {uuid v4}という形式に沿ってパースする
+// TODO: "R-" {GUID}という形式に沿ってパースする
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct RecordId(String);
 
