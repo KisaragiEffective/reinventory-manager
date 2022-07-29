@@ -1,6 +1,6 @@
 use reqwest::header::AUTHORIZATION;
 use log::debug;
-use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, RecordWithoutDescription, UserId, UserLoginPostBody, UserLoginPostResponse};
+use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
 
@@ -50,7 +50,7 @@ impl Operation {
             .unwrap();
     }
 
-    pub async fn get_directory_items(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<RecordWithoutDescription> {
+    pub async fn get_directory_items(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<Record> {
         let client = reqwest::Client::new();
         let path = path.join("%5C");
         // NOTE:
