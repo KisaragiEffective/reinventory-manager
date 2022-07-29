@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{ensure, Result};
-use crate::model::{LoginInfo, Password, UserId};
+use crate::model::{LoginInfo, Password, RecordId, UserId};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -52,7 +52,17 @@ pub enum ToolSubCommand {
         target_user: Option<UserId>,
         #[clap(default_values_t = Vec::<String>::new())]
         base_dir: Vec<String>,
-    }
+    },
+    Move {
+        #[clap(short = 'u', long)]
+        target_user: UserId,
+        #[clap(short, long)]
+        record_id: RecordId,
+        #[clap(long)]
+        from: Vec<String>,
+        #[clap(long)]
+        to: Vec<String>,
+    },
 }
 
 pub fn init_fern() -> anyhow::Result<(), fern::InitError> {

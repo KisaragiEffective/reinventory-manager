@@ -101,4 +101,53 @@ impl Operation {
 
         res
     }
+
+    pub async fn move_record(owner_id: UserId, record: Record, from: Vec<String>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>) {
+        let client = reqwest::Client::new();
+        let new_path = to.join("/");
+        let find = Self::get_directory_items(owner_id.clone(), from, authorization_info).await.into_iter().find(|a| a.id == record.id);
+
+        if let Some(found_record) = find {
+            // region delete old record
+            {
+                let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = record.id);
+                let mut req = client.delete(endpoint);
+
+                if let Some(authorization_info) = authorization_info {
+                    req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                }
+
+                let deleted = req
+                    .send()
+                    .await
+                    .unwrap()
+                    .json::<Record>()
+                    .await
+                    .unwrap();
+
+                debug!("deleted: {deleted:?}");
+            }
+            // endregion
+            // region insert
+            {
+                let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record.id);
+                debug!("endpoint: {endpoint}", endpoint = &endpoint);
+                // * もしエラーが起きたらGUIDを新しく割り当てる
+                let mut req = client.put(endpoint);
+
+                if let Some(authorization_info) = authorization_info {
+                    req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                }
+
+                req
+                    .json(&record)
+                    .send()
+                    .await
+                    .unwrap();
+            }
+            // endregion
+        } else {
+            warn!("not found");
+        }
+    }
 }

@@ -3,6 +3,7 @@ use clap::Parser;
 use log::{debug, info, warn};
 use crate::cli::{AfterArgs, Args, ARGS, ToolSubCommand};
 use crate::operation::Operation;
+use crate::model::Record;
 
 mod operation;
 mod model;
@@ -48,6 +49,24 @@ async fn main() {
                 &login_res.clone().map(|a| a.using_token),
             ).await;
             println!("{}", serde_json::to_string(&res).unwrap());
+        }
+        ToolSubCommand::Move { target_user, record_id, from, to } => {
+            let owner_id = target_user.clone();
+            let found_record: Option<Record> = None;
+            if let Some(record) = found_record {
+                Operation::move_record(
+                    owner_id.clone(),
+                    record.clone(),
+                    from.clone(),
+                    to.clone(),
+                    &login_res.clone().map(|a| a.using_token),
+                ).await;
+
+                let from = record.path.clone();
+                info!("moved {record_id} for {owner_id}, from {from} to {to}.", to = to.join("\\"));
+            } else {
+                warn!("{record_id} could not be found for {owner_id}");
+            }
         }
     }
 
