@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard};
 use clap::{Parser, Subcommand};
 use derive_more::{FromStr, Display};
@@ -8,9 +9,19 @@ use serde::de::Error;
 use url::Url;
 use email_address::EmailAddress;
 use reqwest::header::AUTHORIZATION;
+use anyhow::{ensure, Result};
 
-#[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct UserId(String);
+
+impl FromStr for UserId {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        ensure!(s.starts_with("U-"), "An UserId must be prefixed with `U-`");
+        Ok(Self(s.to_string()))
+    }
+}
 
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct RecordId(String);
@@ -21,17 +32,44 @@ struct GroupId(String);
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct Password(String);
 
-#[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone)]
-struct AuthToken(String);
+#[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+struct SessionToken(String);
 
-// TODO: 他人のインベントリも見れるようにしたら面白いのでは？
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(short, long)]
-    email: EmailAddress,
+    email: Option<EmailAddress>,
     #[clap(short, long)]
-    password: Password,
+    password: Option<Password>,
     #[clap(subcommand)]
+    sub_command: ToolSubCommand,
+}
+
+impl Args {
+    fn validate(self) -> Result<AfterArgs> {
+        ensure!(self.email.is_some() == self.password.is_some(), r#"You can not provide only one of authorization info.
+You must:
+a) provide both email and password
+b) leave blank both email and password (no login)"#);
+        Ok(AfterArgs {
+            login_info: self.email.and_then(|email| self.password.map(|password| LoginInfo {
+                email,
+                password,
+            })),
+            sub_command: self.sub_command,
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct LoginInfo {
+    email: EmailAddress,
+    password: Password,
+}
+
+#[derive(Debug)]
+struct AfterArgs {
+    login_info: Option<LoginInfo>,
     sub_command: ToolSubCommand,
 }
 
@@ -41,7 +79,9 @@ enum ToolSubCommand {
         #[clap(short = 'd', long, default_value_t = 1)]
         max_depth: usize,
         #[clap(default_values_t = Vec::<String>::new())]
-        base_dir: Vec<String>
+        base_dir: Vec<String>,
+        #[clap(short = 'u', long)]
+        target_user: Option<UserId>,
     }
 }
 
@@ -71,7 +111,7 @@ impl UserLoginPostBody {
 #[serde(rename_all = "camelCase")]
 struct UserLoginPostResponse {
     user_id: UserId,
-    token: AuthToken,
+    token: SessionToken,
 }
 
 impl UserLoginPostResponse {
@@ -83,9 +123,10 @@ impl UserLoginPostResponse {
     }
 }
 
+#[derive(Debug, Clone)]
 struct AuthorizationInfo {
     owner_id: UserId,
-    token: AuthToken,
+    token: SessionToken,
 }
 
 impl AuthorizationInfo {
@@ -96,9 +137,9 @@ impl AuthorizationInfo {
     }
 }
 
+#[derive(Debug, Clone)]
 struct LoginResponse {
     using_token: AuthorizationInfo,
-    auth_token: AuthToken,
     user_id: UserId,
 }
 
@@ -155,34 +196,36 @@ struct PathPointedRecordResponse {
 struct Operation;
 
 impl Operation {
-    async fn login() -> LoginResponse {
+    async fn login() -> Option<LoginResponse> {
         let client = reqwest::Client::new();
         debug!("post");
-        let email = { get_args_lock().email.clone() };
-        let password = { get_args_lock().password.clone() };
-        let token_res = client
-            .post(format!("{BASE_POINT}/userSessions"))
-            .json(&UserLoginPostBody::create(email, password, false))
-            .send();
+        if let Some(auth) = &get_args_lock().login_info {
+            let email = auth.email.clone();
+            let password = auth.password.clone();
+            let token_res = client
+                .post(format!("{BASE_POINT}/userSessions"))
+                .json(&UserLoginPostBody::create(email, password, false))
+                .send();
 
-        debug!("post 2");
-        let token_res = token_res
-            .await
-            .unwrap()
-            .json::<UserLoginPostResponse>()
-            .await
-            .unwrap();
+            debug!("post 2");
+            let token_res = token_res
+                .await
+                .unwrap()
+                .json::<UserLoginPostResponse>()
+                .await
+                .unwrap();
 
-        debug!("post 3");
-        let using_token = (&token_res).to_authorization_info();
-        let auth_token = (&token_res.token).clone();
-        let user_id = token_res.user_id;
+            debug!("post 3");
+            let using_token = (&token_res).to_authorization_info();
+            let user_id = token_res.user_id;
 
-        debug!("post 4");
-        LoginResponse {
-            using_token,
-            auth_token,
-            user_id,
+            debug!("post 4");
+            Some(LoginResponse {
+                using_token,
+                user_id,
+            })
+        } else {
+            None
         }
     }
 
@@ -196,7 +239,7 @@ impl Operation {
             .unwrap();
     }
 
-    async fn get_record_at_path(owner_id: UserId, path: Vec<String>, authorization_info: &AuthorizationInfo) -> Vec<PathPointedRecordResponse> {
+    async fn get_record_at_path(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<PathPointedRecordResponse> {
         let client = reqwest::Client::new();
         let path = path.join("%5C");
         // NOTE:
@@ -212,8 +255,13 @@ impl Operation {
         };
 
         debug!("endpoint: {endpoint}", endpoint = &endpoint);
-        let res = client.get(endpoint)
-            .header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value())
+        let mut res = client.get(endpoint);
+
+        if let Some(authorization_info) = authorization_info {
+            res = res.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+        }
+
+        let res = res
             .send()
             .await
             .unwrap()
@@ -243,12 +291,13 @@ fn init_fern() -> Result<(), fern::InitError> {
     Ok(())
 }
 
-static ARGS: OnceCell<Arc<Mutex<Args>>> = OnceCell::new();
+static ARGS: OnceCell<Arc<Mutex<AfterArgs>>> = OnceCell::new();
 static BASE_POINT: &str = "https://api.neos.com/api";
 
 #[tokio::main]
 async fn main() {
     let args: Args = Args::parse();
+    let args = args.validate().unwrap();
     init_fern().unwrap();
     debug!("fern initialized");
 
@@ -260,18 +309,27 @@ async fn main() {
 
     let sub_command = { &get_args_lock().sub_command };
     match sub_command {
-        ToolSubCommand::List { max_depth, base_dir } => {
+        ToolSubCommand::List { max_depth, base_dir, target_user } => {
             println!("Inventory:");
-            for x in Operation::get_record_at_path(login_res.user_id.clone(), base_dir.clone(), &login_res.using_token).await {
+            let xs = Operation::get_record_at_path(
+                // TODO: ここのエラー表示が終わってるので要改善
+                target_user.clone().unwrap_or_else(|| login_res.clone().unwrap().user_id),
+                base_dir.clone(),
+                &login_res.clone().map(|a| a.using_token)
+            ).await;
+            for x in xs {
                 println!("{:?}", x);
             }
         }
     }
-    let user_id = login_res.user_id;
-    Operation::logout(user_id, login_res.using_token).await;
-    info!("Logged out");
+
+    if let Some(session) = login_res {
+        let user_id = session.user_id;
+        Operation::logout(user_id, session.using_token).await;
+        info!("Logged out");
+    }
 }
 
-fn get_args_lock<'a>() -> MutexGuard<'a, Args> {
+fn get_args_lock<'a>() -> MutexGuard<'a, AfterArgs> {
     ARGS.get().unwrap().lock().unwrap()
 }
