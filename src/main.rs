@@ -25,11 +25,11 @@ async fn main() {
     match sub_command {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
             println!("Inventory:");
-            let xs = Operation::get_record_at_path(
+            let xs = Operation::get_directory_items(
                 // TODO: ここのエラー表示が終わってるので要改善
                 target_user.clone().unwrap_or_else(|| login_res.clone().unwrap().user_id),
                 base_dir.clone(),
-                &login_res.clone().map(|a| a.using_token)
+                &login_res.clone().map(|a| a.using_token),
             ).await;
             for x in xs {
                 println!("{:?}", x);

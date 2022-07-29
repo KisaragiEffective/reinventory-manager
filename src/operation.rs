@@ -1,6 +1,6 @@
 use reqwest::header::AUTHORIZATION;
 use log::debug;
-use crate::model::{AuthorizationInfo, LoginResponse, PathPointedRecordResponse, UserId, UserLoginPostBody, UserLoginPostResponse};
+use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, RecordWithoutDescription, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
 
@@ -50,20 +50,14 @@ impl Operation {
             .unwrap();
     }
 
-    pub async fn get_record_at_path(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<PathPointedRecordResponse> {
+    pub async fn get_directory_items(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<RecordWithoutDescription> {
         let client = reqwest::Client::new();
         let path = path.join("%5C");
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
 
 
-        // NOTE: これはドキュメントが古い。 (thanks kazu)
-        // あと、Personalから始めるのではなく、Inventoryから先頭のバックスラッシュなしでパスを指定する点に注意
-        let endpoint = if path.is_empty() {
-            format!("{BASE_POINT}/users/{owner_id}/records/root")
-        } else {
-            format!("{BASE_POINT}/users/{owner_id}/records?path={path}")
-        };
+        let endpoint = format!("{BASE_POINT}/users/{owner_id}/records?path={path}");
 
         debug!("endpoint: {endpoint}", endpoint = &endpoint);
         let mut res = client.get(endpoint);
@@ -76,7 +70,7 @@ impl Operation {
             .send()
             .await
             .unwrap()
-            .json::<Vec<PathPointedRecordResponse>>()
+            .json()
             .await
             .unwrap();
 

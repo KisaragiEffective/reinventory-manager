@@ -5,6 +5,7 @@ use email_address::EmailAddress;
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::Error;
 use anyhow::ensure;
+use chrono::{DateTime, Utc};
 use log::debug;
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
@@ -19,6 +20,7 @@ impl FromStr for UserId {
     }
 }
 
+// TODO: "R-" {uuid v4}という形式に沿ってパースする
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 struct RecordId(String);
 
@@ -140,15 +142,16 @@ impl<'de> Deserialize<'de> for RecordType {
 }
 
 #[derive(Deserialize, Debug)]
-#[serde(rename = "camelCase")]
+#[serde(rename_all = "camelCase")]
+// fields are only for serde-integrations. I'd like to export them in JSON.
+#[allow(dead_code)]
 /// https://neos-api.polylogix.studio/#tag/Records/operation/getRecordAtPath
-pub struct PathPointedRecordResponse {
+pub struct RecordWithoutDescription {
     id: RecordId,
     owner_id: RecordOwner,
     /// neosdb:///...
     asset_uri: Url,
     name: String,
-    desciption: String,
     record_type: RecordType,
     owner_name: String,
     tags: Vec<String>,

@@ -42,6 +42,8 @@ pub enum ToolSubCommand {
     List {
         #[clap(short = 'd', long, default_value_t = 1)]
         max_depth: usize,
+        #[clap(short = 'u', long)]
+        target_user: Option<UserId>,
         #[clap(default_values_t = Vec::<String>::new())]
         base_dir: Vec<String>,
     },
