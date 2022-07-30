@@ -2,6 +2,17 @@
 name = "neosvr-inventory-management"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.62"
+authors = [
+    "KisaragiEffective <kisaragi.effective@gmail.com>",
+    "kisaragi marine <kisaragi.marine@gmail.com>",
+]
+description = "An handy tool that is intended to help your inventory cleanup or dump."
+readme = "README.md"
+repository = "https://github.com/KisaragiMarine/neosvr-inventory-management"
+license = "MIT OR Apache-2.0"
+keywords = ["neosvr"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
