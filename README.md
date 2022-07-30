@@ -51,7 +51,7 @@ neosvr-inventory-management list -u U-kisaragi-marine Inventory Public 2>/dev/nu
 
 ##### 入力2
 ```shell
-neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890 move -r R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143 -u U-kisaragi-marine 2>/dev/null
+neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890 move -r R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143 -u U-kisaragi-marine --to Inventory --to Work 2>/dev/null
 ```
 
 ##### 出力2
