@@ -3,7 +3,6 @@ use clap::Parser;
 use log::{debug, info, warn};
 use crate::cli::{AfterArgs, Args, ARGS, ToolSubCommand};
 use crate::operation::Operation;
-use crate::model::Record;
 
 mod operation;
 mod model;
