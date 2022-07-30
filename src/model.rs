@@ -162,7 +162,7 @@ pub struct Record {
     pub global_version: i32,
     pub local_version: i32,
     #[serde(rename = "lastModifyingUserId", default)]
-    // recordTypeがdirectoryだと欠けている
+    // 壊れたフォルダーだと欠けている場合がある (?!)
     pub last_update_by: Option<UserId>,
     #[serde(rename = "lastModifyingMachineId", default)]
     // Essential Toolsだと欠けている
