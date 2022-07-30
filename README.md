@@ -21,13 +21,44 @@
 
 もし対応していないなど、何らかの事情でセルフコンパイルが必要な場合、`git clone`からこのレポジトリをクローンしてソースコードを入手してください。
 
-## 使用上の注意
+## 使用
+### ご注意
 * すでにクライアントでログインしているときにこのツールを使うと副作用が起こります。これらはすべてマルチログインできないという技術的な問題であるそうです (by @kazu0617)。
   * インベントリからアイテムを取り出せなくなる
   * インベントリのシンク(Sync)が一向に終わらない
   * 再起動したときにRemember Meを有効にしていてもログアウトされた状態になる
 * `cargo run`経由で動かす場合、`cargo`のフラグと本プロダクトのフラグを`--`で区切ってください。
   * 例: `cargo run --release -- -e kisaragi.marine@gmail.com -p ************** list Inventory`
+* ログは標準エラー出力**及び**カレントディレクトリの`output.log`に出力されます。
+
+### 例
+#### 例1
+`U-kisaragi-marine`の`Inventory\\Public`フォルダを見る
+
+##### 入力1
+```shell
+neosvr-inventory-management list -u U-kisaragi-marine Inventory Public 2>/dev/null
+```
+
+##### 出力1
+(インベントリの各アイテムごとのJSON、1行に1アイテム)
+
+##### 注意1
+* `2>/dev/null` でログの出力を抑制しています。
+
+#### 例2
+`U-kisaragi-marine`の`R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143`を`Inventory\\Work`に移動する
+
+##### 入力2
+```shell
+neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890 move -r R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143 -u U-kisaragi-marine 2>/dev/null
+```
+
+##### 出力2
+(なし)
+
+##### 注意
+* `neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890`で認証を行っています。
 
 ## コントリビューション
 バグ報告、デバッグ、パッチの送信、ドキュメントの誤字修正など、いかなる形でもコントリビューションをいただければ幸いです。
