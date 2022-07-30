@@ -7,6 +7,7 @@ use serde::de::Error;
 use anyhow::ensure;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;
+use uuid::Uuid;
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct UserId(String);
@@ -23,7 +24,7 @@ impl FromStr for UserId {
 // TODO: "R-" {GUID}という形式に沿ってパースする
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 /// This is thin pointer to the actual Record. It is unique, and has one-by-one relation with Record.
-pub struct RecordId(String);
+pub struct RecordId(pub String);
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct GroupId(String);
@@ -120,7 +121,7 @@ pub enum RecordOwner {
     Group(GroupId),
 }
 
-#[derive(Serialize, Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Display, Serialize, Debug, Eq, PartialEq, Copy, Clone)]
 pub enum RecordType {
     Directory,
     Object,
@@ -132,11 +133,13 @@ pub enum RecordType {
 impl<'de> Deserialize<'de> for RecordType {
     fn deserialize<D>(deserializer: D) -> anyhow::Result<Self, D::Error> where D: Deserializer<'de> {
         match String::deserialize(deserializer)?.as_str() {
-            "directory" => Ok(Self::Directory),
-            "object" => Ok(Self::Object),
-            "texture" => Ok(Self::Texture),
-            "audio" => Ok(Self::Audio),
-            "link" => Ok(Self::Link),
+            // this is INTENTIONALLY loose, as the API *may* returns both uppercase and lowercase variant.
+            // This does not seem to have rule(s), so I chose let this side be loose.
+            "directory" | "Directory" => Ok(Self::Directory),
+            "object" | "Object" => Ok(Self::Object),
+            "texture" | "Texture" => Ok(Self::Texture),
+            "audio" | "Audio" => Ok(Self::Audio),
+            "link" | "Link" => Ok(Self::Link),
             _ => Err(D::Error::custom("dir | obj | text | aud | lnk")),
         }
     }
@@ -165,7 +168,9 @@ pub struct Record {
     pub last_update_machine: Option<String>,
     pub name: String,
     pub record_type: RecordType,
-    pub owner_name: String,
+    #[serde(default)]
+    // Essential Toolsだと欠けている
+    pub owner_name: Option<String>,
     #[serde(default)]
     // Essential Toolsだと欠けている
     pub tags: Vec<String>,
@@ -185,12 +190,15 @@ pub struct Record {
     pub random_order: i32,
     pub visits: i32,
     pub rating: f64,
-    pub owner_id: RecordOwner,
+    #[serde(default)]
+    // Essential Toolsだと欠けていることがある
+    pub owner_id: Option<RecordOwner>,
     #[serde(default)]
     pub submissions: Vec<Submission>
 }
 
 /// Essential Toolsだとタイムゾーンが欠けているのでパースに失敗する (?!)
+/// see: https://github.com/Neos-Metaverse/NeosPublic/issues/3714
 fn fallback_to_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
     where
         D: Deserializer<'de>,
