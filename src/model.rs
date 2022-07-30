@@ -161,8 +161,9 @@ pub struct Record {
     pub asset_uri: Option<Url>,
     pub global_version: i32,
     pub local_version: i32,
-    #[serde(rename = "lastModifyingUserId")]
-    pub last_update_by: UserId,
+    #[serde(rename = "lastModifyingUserId", default)]
+    // 壊れたフォルダーだと欠けている場合がある (?!)
+    pub last_update_by: Option<UserId>,
     #[serde(rename = "lastModifyingMachineId", default)]
     // Essential Toolsだと欠けている
     pub last_update_machine: Option<String>,
