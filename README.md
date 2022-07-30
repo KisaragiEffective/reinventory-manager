@@ -14,10 +14,10 @@
 ## ダウンロード
 ダウンロードの前に[下記](#ライセンス)をお読みください。
 
-以下のOS向けに予めコンパイルされたバイナリが配布されています。
-* Windows: *TODO*
-* Linux: *TODO*
-* macOS: *TODO*
+以下のOS向けに予めコンパイルされたバイナリが配布されています。(Releases)[https://github.com/KisaragiEffective/neosvr-inventory-management/releases]からダウンロードしてください。
+* Windows
+* Linux
+* macOS
 
 もし対応していないなど、何らかの事情でセルフコンパイルが必要な場合、`git clone`からこのレポジトリをクローンしてソースコードを入手してください。
 
