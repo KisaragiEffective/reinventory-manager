@@ -1,5 +1,5 @@
 [package]
-name = "neosvr-inventory-move"
+name = "neosvr-inventory-management"
 version = "0.1.0"
 edition = "2021"
 
