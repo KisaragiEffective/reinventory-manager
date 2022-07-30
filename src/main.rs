@@ -49,6 +49,15 @@ async fn main() {
             ).await;
             println!("{}", serde_json::to_string(&res).unwrap());
         }
+        ToolSubCommand::Move { target_user, record_id, to } => {
+            let owner_id = target_user.clone();
+            Operation::move_record(
+                owner_id.clone(),
+                record_id.clone(),
+                to.clone(),
+                &login_res.clone().map(|a| a.using_token),
+            ).await;
+        }
     }
 
     if let Some(session) = login_res {

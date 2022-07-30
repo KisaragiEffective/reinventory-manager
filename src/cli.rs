@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{ensure, Result};
-use crate::model::{LoginInfo, Password, UserId};
+use fern::colors::ColoredLevelConfig;
+use crate::model::{LoginInfo, Password, RecordId, UserId};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -52,17 +53,27 @@ pub enum ToolSubCommand {
         target_user: Option<UserId>,
         #[clap(default_values_t = Vec::<String>::new())]
         base_dir: Vec<String>,
-    }
+    },
+    Move {
+        #[clap(short = 'u', long)]
+        target_user: UserId,
+        #[clap(short, long)]
+        record_id: RecordId,
+        #[clap(long)]
+        to: Vec<String>,
+    },
 }
 
 pub fn init_fern() -> anyhow::Result<(), fern::InitError> {
+    let colors = ColoredLevelConfig::new();
+
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
                 chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
                 record.target(),
-                record.level(),
+                colors.color(record.level()),
                 message
             ))
         })
