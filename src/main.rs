@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use clap::Parser;
 use log::{debug, error, info, warn};
 use crate::cli::{AfterArgs, Args, ARGS, LogLevel, ToolSubCommand};
-use crate::model::SessionToken;
+use crate::model::{AuthorizationInfo, LoginInfo, SessionToken};
 use crate::operation::Operation;
 
 mod operation;
@@ -22,30 +22,38 @@ async fn main() {
     debug!("fern initialized");
 
     let read_token_from_stdin = args.read_token_from_stdin;
+    let auth_info = args.login_info.clone();
     ARGS.set(Arc::new(Mutex::new(args))).expect("once_cell error!!");
 
-    debug!("login...");
-    let login_res = Operation::login().await;
-    debug!("done.");
-
-    let authorization_info = login_res.clone().map(|a| a.using_token);
-    if read_token_from_stdin {
-        if let Some(mut auth) = authorization_info.clone() {
+    let authorization_info = if read_token_from_stdin {
+        if let Some(LoginInfo::ByTokenFromStdin { user_id }) = auth_info {
             let mut buf = String::new();
             let read_size = stdin().read_line(&mut buf).unwrap();
             if read_size == 0 {
                 error!("Please provide token from stdin!");
                 exit(1)
             }
-            auth.token = SessionToken::new(buf);
+            let auth = AuthorizationInfo::new(user_id, SessionToken::new(buf));
+            Some(auth)
+        } else {
+            unreachable!("Arguments validation must be done at this point")
         }
-    }
+    } else {
+        debug!("login...");
+        let login_res = Operation::login().await;
+        debug!("done.");
+        let authorization_info = login_res.clone().map(|a| a.using_token);
+        authorization_info
+    };
+
     let sub_command = { &get_args_lock().sub_command };
     match sub_command {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
             println!("Inventory:");
             let xs = Operation::get_directory_items(
-                target_user.clone().or_else(|| login_res.clone().map(|a| a.user_id)).expect("To perform this action, I must identify you."),
+                target_user
+                    .or(authorization_info.map(|a| a.owner_id))
+                    .expect("To perform this action, I must know user, to see inventory contents."),
                 base_dir.clone(),
                 &authorization_info,
             ).await;
@@ -60,9 +68,10 @@ async fn main() {
         }
         ToolSubCommand::Metadata { target_user, base_dir } => {
             println!("Directory metadata:");
-            let owner_id = target_user.clone().unwrap_or_else(|| login_res.clone().unwrap().user_id);
             let res = Operation::get_directory_metadata(
-                owner_id,
+                target_user
+                    .or(authorization_info.map(|a| a.owner_id))
+                    .expect("To perform this action, I must know user, to see inventory contents."),
                 base_dir.clone(),
                 &authorization_info,
             ).await;

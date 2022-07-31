@@ -7,7 +7,7 @@ use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
 use strum::{EnumString, Display as StrumDisplay};
-use crate::model::{LoginInfo, Password, RecordId, UserId};
+use crate::model::{LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -17,6 +17,8 @@ pub struct Args {
     password: Option<Password>,
     #[clap(short, long)]
     totp: Option<OneTimePassword>,
+    #[clap(short, long)]
+    user_id: Option<UserId>,
     #[clap(long, default_value_t = LogLevel::Warn)]
     log_level: LogLevel,
     #[clap(long)]
@@ -25,30 +27,53 @@ pub struct Args {
     sub_command: ToolSubCommand,
 }
 
-#[derive(Display, FromStr, Debug, Eq, PartialEq)]
+#[derive(Display, FromStr, Debug, Eq, PartialEq, Clone)]
 pub struct OneTimePassword(pub String);
 
 impl Args {
     pub fn validate(self) -> Result<AfterArgs> {
-        if self.email.is_some() && self.password.is_some() {
-            debug!("auth: email+password");
+        let login_info = if let Some(password) = self.password {
+            let is_email = self.email.is_some();
+            let is_user_id = self.user_id.is_some();
+
+            match (self.email, self.user_id) {
+                (Some(_), Some(_)) => {
+                    bail!("You can not provide both --email and --user-id.")
+                }
+                (Some(email), None) => {
+                    Some(LoginInfo::ByPassword {
+                        user_identify_pointer: UserIdentifyPointer::Email(email),
+                        password,
+                        totp: self.totp
+                    })
+                }
+                (None, Some(user_id)) => {
+                    Some(LoginInfo::ByPassword {
+                        user_identify_pointer: UserIdentifyPointer::UserId(user_id),
+                        password,
+                        totp: self.totp
+                    })
+                }
+                (None, None) => {
+                    bail!("You must provide --email or --user-id if --password is given.")
+                }
+            }
         } else if self.read_token_from_stdin {
-            debug!("auth: token");
-        } else if self.email.is_none() && self.email.is_none() {
-            debug!("auth: *no auth*");
+            if let Some(user_id) = self.user_id {
+                debug!("auth: userid+token");
+                Some(LoginInfo::ByTokenFromStdin {
+                    user_id
+                })
+            } else {
+                bail!("You must provide --user-id if --read-token-from-stdin is given.")
+            }
         } else {
-            bail!(r#"You must combine switch in valid way.
-Possible situation:
-a) provide both email and password
-b) provide token (can be grubbed from external tool)
-c) leave blank all switch (no login)"#)
-        }
+            debug!("auth: no login");
+            None
+        };
+
         Ok(AfterArgs {
-            login_info: self.email.and_then(|email| self.password.map(|password| LoginInfo {
-                email,
-                password,
-                totp: self.totp,
-            })),
+            login_info,
             sub_command: self.sub_command,
             log_level: self.log_level,
             read_token_from_stdin: self.read_token_from_stdin,

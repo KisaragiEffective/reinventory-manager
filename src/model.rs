@@ -51,11 +51,22 @@ impl SessionToken {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct LoginInfo {
-    pub email: EmailAddress,
-    pub password: Password,
-    pub totp: Option<OneTimePassword>,
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum LoginInfo {
+    ByPassword {
+        user_identify_pointer: UserIdentifyPointer,
+        password: Password,
+        totp: Option<OneTimePassword>,
+    },
+    ByTokenFromStdin {
+        user_id: UserId,
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum UserIdentifyPointer {
+    Email(EmailAddress),
+    UserId(UserId),
 }
 
 #[derive(Serialize)]
@@ -112,6 +123,13 @@ impl AuthorizationInfo {
         let val = format!("neos {owner_id}:{auth_token}", owner_id = self.owner_id.0, auth_token = self.token.0);
         debug!("auth: {val}");
         val
+    }
+
+    pub fn new(owner_id: UserId, token: SessionToken) -> Self {
+        Self {
+            owner_id,
+            token,
+        }
     }
 }
 
