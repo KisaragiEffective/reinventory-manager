@@ -52,7 +52,8 @@ async fn main() {
             println!("Inventory:");
             let xs = Operation::get_directory_items(
                 target_user
-                    .or(authorization_info.map(|a| a.owner_id))
+                    .clone()
+                    .or_else(|| authorization_info.clone().map(|a| a.owner_id))
                     .expect("To perform this action, I must know user, to see inventory contents."),
                 base_dir.clone(),
                 &authorization_info,
@@ -70,7 +71,8 @@ async fn main() {
             println!("Directory metadata:");
             let res = Operation::get_directory_metadata(
                 target_user
-                    .or(authorization_info.map(|a| a.owner_id))
+                    .clone()
+                    .or_else(|| authorization_info.clone().map(|a| a.owner_id))
                     .expect("To perform this action, I must know user, to see inventory contents."),
                 base_dir.clone(),
                 &authorization_info,

@@ -13,17 +13,15 @@ impl Operation {
         let client = reqwest::Client::new();
         debug!("post");
         if let Some(auth) = &crate::get_args_lock().login_info {
-            let email = auth.email.clone();
-            let password = auth.password.clone();
             let mut req = client
                 .post(format!("{BASE_POINT}/userSessions"));
 
-            if let Some(x) = &auth.totp {
+            if let Some(x) = auth.get_totp() {
                 req = req.header("TOTP", x.0.clone())
             }
 
             let token_res = req
-                .json(&UserLoginPostBody::create(email, password, false))
+                .json(&UserLoginPostBody::create(auth.clone(), false))
                 .send();
 
             debug!("post 2");

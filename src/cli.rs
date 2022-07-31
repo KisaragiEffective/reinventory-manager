@@ -7,6 +7,7 @@ use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
 use strum::{EnumString, Display as StrumDisplay};
+use serde::Serialize;
 use crate::model::{LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
 
 #[derive(Parser, Debug)]
@@ -27,29 +28,26 @@ pub struct Args {
     sub_command: ToolSubCommand,
 }
 
-#[derive(Display, FromStr, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Display, FromStr, Debug, Eq, PartialEq, Clone)]
 pub struct OneTimePassword(pub String);
 
 impl Args {
     pub fn validate(self) -> Result<AfterArgs> {
         let login_info = if let Some(password) = self.password {
-            let is_email = self.email.is_some();
-            let is_user_id = self.user_id.is_some();
-
             match (self.email, self.user_id) {
                 (Some(_), Some(_)) => {
                     bail!("You can not provide both --email and --user-id.")
                 }
                 (Some(email), None) => {
                     Some(LoginInfo::ByPassword {
-                        user_identify_pointer: UserIdentifyPointer::Email(email),
+                        user_identify_pointer: UserIdentifyPointer::email(email),
                         password,
                         totp: self.totp
                     })
                 }
                 (None, Some(user_id)) => {
                     Some(LoginInfo::ByPassword {
-                        user_identify_pointer: UserIdentifyPointer::UserId(user_id),
+                        user_identify_pointer: UserIdentifyPointer::user_id(user_id),
                         password,
                         totp: self.totp
                     })
