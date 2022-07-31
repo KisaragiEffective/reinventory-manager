@@ -107,7 +107,7 @@ pub struct UserLoginPostBody {
     #[serde(flatten)]
     login_method: LoginInfo,
     #[serde(rename = "secretMachineId")]
-    session_token: String,
+    generated_machine_id: String,
     remember_me: bool,
 }
 
@@ -120,7 +120,7 @@ impl UserLoginPostBody {
 
         Self {
             login_method,
-            session_token: nonce,
+            generated_machine_id: nonce,
             remember_me
         }
     }
