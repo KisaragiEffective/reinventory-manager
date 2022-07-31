@@ -142,6 +142,13 @@ impl Operation {
         let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
 
         if let Some(found_record) = find {
+            if found_record.record_type == RecordType::Directory {
+                // TODO: fix this
+                error!("Directories cannot be moved at this time. This is implement restriction. \
+                Please see https://github.com/KisaragiEffective/neosvr-inventory-management/issues/36 for more info.");
+                return;
+            }
+
             debug!("found, moving");
 
             let from = (&found_record.path).clone();
