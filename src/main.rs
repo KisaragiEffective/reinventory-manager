@@ -49,7 +49,7 @@ async fn main() {
     let sub_command = { &get_args_lock().sub_command };
     match sub_command {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
-            println!("Inventory:");
+            debug!("Inventory:");
             let xs = Operation::get_directory_items(
                 target_user
                     .clone()
@@ -68,7 +68,7 @@ async fn main() {
             }
         }
         ToolSubCommand::Metadata { target_user, base_dir } => {
-            println!("Directory metadata:");
+            debug!("Directory metadata:");
             let res = Operation::get_directory_metadata(
                 target_user
                     .clone()
