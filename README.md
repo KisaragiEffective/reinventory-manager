@@ -1,4 +1,4 @@
-# neosvr-inventory-management
+# NeosVR Inventory Management
 ## Notes to foreign users
 * This readme is written in Japanese. Please use external tool to translate this document into your language. I'm sorry for inconvenience.
 * If this document is translated into a language other than Japanese, the Japanese version will prevail to the extent that there is any conflict.
@@ -10,6 +10,7 @@
 私が知る限りでは、NeosはWindowsの「エクスプローラー」にあるようなディレクトリ間の移動ができません。
 話を聞いていく中で、「大晦日にインベントリを整理するイベントがある」「アイテムを全部だして選り分ける必要がある」という事例を聞きました。
 また、開発者である私も、ゲーム内でインベントリにアイテムをセーブする中で、インベントリ直下のアイテムがすでに8列ほどとなっていました。このペースで保存していくと必然的に直下が大変なカオスを招くことになるだろうと予想したため、今回ツールの作成に踏み切りました。
+なお、このツールを作るにあたって[Neos-Public](https://github.com/Neos-Metaverse/NeosPublic)のチケットを調べましたが、UI刷新によって問題が解決されると書いてあったため新しくチケットを建てるのは諦めました。また、UIの刷新は2019年から[話に上がっている](https://github.com/Neos-Metaverse/NeosPublic/issues/299)ものの、3年経った現在でもチケットが閉じられていないことから起こる確率は今後も低いだろうと考えています。
 
 ## ダウンロード
 ダウンロードの前に[下記](#ライセンス)をお読みください。
