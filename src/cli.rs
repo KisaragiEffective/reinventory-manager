@@ -128,7 +128,7 @@ pub enum ToolSubCommand {
         #[clap(short = 'u', long)]
         target_user: UserId,
         #[clap(short, long)]
-        record_id: RecordId,
+        record_id: Vec<RecordId>,
         #[clap(long)]
         to: Vec<String>,
     },

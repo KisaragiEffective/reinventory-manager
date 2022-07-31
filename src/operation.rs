@@ -127,86 +127,88 @@ impl Operation {
         res
     }
 
-    pub async fn move_record(owner_id: UserId, record_id: RecordId, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
+    pub async fn move_records(owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
         let client = reqwest::Client::new();
-        let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
+        for record_id in records_to_move {
+            let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
 
-        if let Some(found_record) = find {
-            if found_record.record_type == RecordType::Directory {
-                // TODO: fix this
-                error!("Directories cannot be moved at this time. This is implement restriction. \
+            if let Some(found_record) = find {
+                if found_record.record_type == RecordType::Directory {
+                    // TODO: fix this
+                    error!("Directories cannot be moved at this time. This is implement restriction. \
                 Please see https://github.com/KisaragiEffective/neosvr-inventory-management/issues/36 for more info.");
-                return;
-            }
-
-            debug!("found, moving");
-
-            let from = (&found_record.path).clone();
-
-            // region delete old record
-            {
-                let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id);
-                let mut req = client.delete(endpoint);
-
-                if let Some(authorization_info) = authorization_info {
-                    req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                    return;
                 }
 
-                let deleted = req
-                    .send()
-                    .await
-                    .unwrap();
+                debug!("found, moving");
 
-                debug!("deleted: {deleted:?}");
-            }
-            // endregion
-            // region insert
-            {
-                debug!("insert!");
-                let record_id = if keep_record_id {
-                    debug!("record id unchanged");
-                    record_id
-                } else {
-                    // GUIDは小文字が「推奨」されているため念の為小文字にしておく
-                    let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
-                    debug!("new record id: {record_id}", record_id = &record_id);
-                    record_id
-                };
+                let from = (&found_record.path).clone();
 
-                let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
-                debug!("endpoint: {endpoint}", endpoint = &endpoint);
-                let mut req = client.put(endpoint);
+                // region delete old record
+                {
+                    let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id);
+                    let mut req = client.delete(endpoint);
 
-                if let Some(authorization_info) = authorization_info {
-                    debug!("auth set");
-                    req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                    if let Some(authorization_info) = authorization_info {
+                        req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                    }
+
+                    let deleted = req
+                        .send()
+                        .await
+                        .unwrap();
+
+                    debug!("deleted: {deleted:?}");
                 }
+                // endregion
+                // region insert
+                {
+                    debug!("insert!");
+                    let record_id = if keep_record_id {
+                        debug!("record id unchanged");
+                        record_id
+                    } else {
+                        // GUIDは小文字が「推奨」されているため念の為小文字にしておく
+                        let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
+                        debug!("new record id: {record_id}", record_id = &record_id);
+                        record_id
+                    };
 
-                let mut record = found_record.clone();
-                record.path = to.join("\\");
-                record.id = record_id.clone();
+                    let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
+                    debug!("endpoint: {endpoint}", endpoint = &endpoint);
+                    let mut req = client.put(endpoint);
 
-                debug!("requesting...");
-                let res = req
-                    .json(&record)
-                    .send()
-                    .await
-                    .unwrap();
-                if res.status().is_success() {
-                    info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"), record_id = &record_id);
-                } else if res.status().is_client_error() {
-                    error!("Client error ({status}): this is fatal bug. Please report this to bug tracker.", status = res.status());
-                    // TODO: rollback
-                } else if res.status().is_server_error() {
-                    error!("Server error ({status}): Please try again in later.", status = res.status());
-                } else {
-                    warn!("Unhandled status code: {status}", status = res.status())
+                    if let Some(authorization_info) = authorization_info {
+                        debug!("auth set");
+                        req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                    }
+
+                    let mut record = found_record.clone();
+                    record.path = to.join("\\");
+                    record.id = record_id.clone();
+
+                    debug!("requesting...");
+                    let res = req
+                        .json(&record)
+                        .send()
+                        .await
+                        .unwrap();
+                    if res.status().is_success() {
+                        info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"), record_id = &record_id);
+                    } else if res.status().is_client_error() {
+                        error!("Client error ({status}): this is fatal bug. Please report this to bug tracker.", status = res.status());
+                        // TODO: rollback
+                    } else if res.status().is_server_error() {
+                        error!("Server error ({status}): Please try again in later.", status = res.status());
+                    } else {
+                        warn!("Unhandled status code: {status}", status = res.status())
+                    }
+                    debug!("Response: {res:?}", res = &res);
                 }
-                debug!("Response: {res:?}", res = &res);
+                // endregion
+            } else {
+                warn!("not found");
             }
-            // endregion
-        } else {
-            warn!("not found");
         }
     }
 
