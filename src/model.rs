@@ -7,7 +7,7 @@ use serde::de::Error;
 use anyhow::ensure;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;
-use uuid::Uuid;
+use crate::cli::OneTimePassword;
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct UserId(String);
@@ -48,6 +48,7 @@ pub struct SessionToken(String);
 pub struct LoginInfo {
     pub email: EmailAddress,
     pub password: Password,
+    pub totp: Option<OneTimePassword>,
 }
 
 #[derive(Serialize)]

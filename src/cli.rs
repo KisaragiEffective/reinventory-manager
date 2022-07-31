@@ -5,7 +5,8 @@ use email_address::EmailAddress;
 use anyhow::{ensure, Result};
 use fern::colors::ColoredLevelConfig;
 use log::LevelFilter;
-use strum::{EnumString, Display};
+use derive_more::{Display, FromStr};
+use strum::{EnumString, Display as StrumDisplay};
 use crate::model::{LoginInfo, Password, RecordId, UserId};
 
 #[derive(Parser, Debug)]
@@ -14,11 +15,16 @@ pub struct Args {
     email: Option<EmailAddress>,
     #[clap(short, long)]
     password: Option<Password>,
+    #[clap(short, long)]
+    totp: Option<OneTimePassword>,
     #[clap(long, default_value_t = LogLevel::Warn)]
     log_level: LogLevel,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
+
+#[derive(Display, FromStr, Debug, Eq, PartialEq)]
+pub struct OneTimePassword(pub String);
 
 impl Args {
     pub fn validate(self) -> Result<AfterArgs> {
@@ -30,6 +36,7 @@ b) leave blank both email and password (no login)"#);
             login_info: self.email.and_then(|email| self.password.map(|password| LoginInfo {
                 email,
                 password,
+                totp: self.totp,
             })),
             sub_command: self.sub_command,
             log_level: self.log_level,
@@ -92,7 +99,7 @@ pub fn init_fern(log_level: LogLevel) -> anyhow::Result<(), fern::InitError> {
 
 pub static ARGS: OnceCell<Arc<Mutex<AfterArgs>>> = OnceCell::new();
 
-#[derive(EnumString, Display, Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(EnumString, StrumDisplay, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LogLevel {
     #[strum(serialize = "none")]
     None,

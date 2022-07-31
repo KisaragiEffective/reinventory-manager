@@ -31,6 +31,14 @@
   * 例: `cargo run --release -- -e kisaragi.marine@gmail.com -p ************** list Inventory`
 * ログは標準エラー出力**及び**カレントディレクトリの`output.log`に出力されます。
 
+### 認証
+* `-e` or `--email`: Eメール
+* `-p` or `--password`: パスワード
+* `-t` or `--totp`: 二要素認証のトークン (任意)
+
+* `-e` 及び `-p`を提供しない場合はログインしません。その場合、`isPublic`が`true`のレコードのみ見ることができます。
+* ログインするべきアカウントが特定できない場合はエラーになります。
+
 ### 例
 #### 例1
 `U-kisaragi-marine`の`Inventory\\Public`フォルダを見る
