@@ -15,8 +15,14 @@ impl Operation {
         if let Some(auth) = &crate::get_args_lock().login_info {
             let email = auth.email.clone();
             let password = auth.password.clone();
-            let token_res = client
-                .post(format!("{BASE_POINT}/userSessions"))
+            let mut req = client
+                .post(format!("{BASE_POINT}/userSessions"));
+
+            if let Some(x) = &auth.totp {
+                req = req.header("TOTP", x.0.clone())
+            }
+
+            let token_res = req
                 .json(&UserLoginPostBody::create(email, password, false))
                 .send();
 
