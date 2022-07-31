@@ -2,9 +2,9 @@ use once_cell::sync::OnceCell;
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use fern::colors::ColoredLevelConfig;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
 use strum::{EnumString, Display as StrumDisplay};
 use crate::model::{LoginInfo, Password, RecordId, UserId};
@@ -30,10 +30,19 @@ pub struct OneTimePassword(pub String);
 
 impl Args {
     pub fn validate(self) -> Result<AfterArgs> {
-        ensure!(self.email.is_some() == self.password.is_some(), r#"You can not provide only one of authorization info.
-You must:
+        if self.email.is_some() && self.password.is_some() {
+            debug!("auth: email+password");
+        } else if self.read_token_from_stdin {
+            debug!("auth: token");
+        } else if self.email.is_none() && self.email.is_none() {
+            debug!("auth: *no auth*");
+        } else {
+            bail!(r#"You must combine switch in valid way.
+Possible situation:
 a) provide both email and password
-b) leave blank both email and password (no login)"#);
+b) provide token (can be grubbed from external tool)
+c) leave blank all switch (no login)"#)
+        }
         Ok(AfterArgs {
             login_info: self.email.and_then(|email| self.password.map(|password| LoginInfo {
                 email,
