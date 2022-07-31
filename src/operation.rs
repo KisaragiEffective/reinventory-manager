@@ -126,33 +126,9 @@ impl Operation {
         res
     }
 
-    #[async_recursion]
-    pub async fn find_recursive(base_dir: Vec<String>, owner_id: UserId, record_id: RecordId, authorization_info: &Option<AuthorizationInfo>) -> Option<Record> {
-        for record in Self::get_directory_items(owner_id.clone(), base_dir.clone(), authorization_info).await {
-            debug!("checking '{name}' (type={tp} | {id})", name = &record.name, tp = &record.record_type, id = &record.id);
-
-            if record.id == record_id {
-                return Some(record)
-            } else if record.record_type == RecordType::Directory {
-                let opt = Self::find_recursive({
-                    let mut buf = base_dir.clone();
-                    buf.push(record.name);
-                    buf
-                }, owner_id.clone(), record_id.clone(), authorization_info).await;
-                if let Some(found) = opt {
-                    return Some(found)
-                }
-            }
-        }
-
-        debug!("---------------------------------");
-
-        None
-    }
-
     pub async fn move_record(owner_id: UserId, record_id: RecordId, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>) {
         let client = reqwest::Client::new();
-        let find = Self::find_recursive(vec!["Inventory".to_string()], owner_id.clone(), record_id.clone(), authorization_info).await;
+        let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
 
         if let Some(found_record) = find {
             debug!("found, moving");
@@ -216,6 +192,44 @@ impl Operation {
             // endregion
         } else {
             warn!("not found");
+        }
+    }
+
+    pub async fn get_record(owner_id: UserId, record_id: RecordId, authorization_info: &Option<AuthorizationInfo>) -> Option<Record> {
+        let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
+        let client = reqwest::Client::new();
+
+        let mut req = client
+            .get(endpoint);
+
+        if let Some(authorization_info) = authorization_info {
+            debug!("auth set");
+            req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+        }
+
+        let res = req
+            .send()
+            .await
+            .expect("HTTP connection error");
+
+        match res.status().as_u16() {
+            200 => {
+                let record = res
+                    .json()
+                    .await
+                    .expect("Failed to parse JSON: This is critical bug. Please open ticket on https://github.com/KisaragiEffective/neosvr-inventory-management/issues.");
+
+                Some(record)
+            }
+            403 => {
+                error!("Unauthorized");
+                None
+            }
+            404 => None,
+            other_status => {
+                warn!("Unhandled status code: {other_status}");
+                None
+            }
         }
     }
 }
