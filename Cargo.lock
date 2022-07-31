@@ -536,6 +536,7 @@ version = "0.1.5"
 dependencies = [
  "anyhow",
  "async-recursion",
+ "base64",
  "chrono",
  "clap",
  "derive_more",

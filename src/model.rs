@@ -7,6 +7,7 @@ use serde::de::Error;
 use anyhow::ensure;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;
+use uuid::Uuid;
 use crate::cli::OneTimePassword;
 
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
@@ -57,17 +58,22 @@ pub struct LoginInfo {
 pub struct UserLoginPostBody {
     email: EmailAddress,
     password: Password,
-    session_token: Option<()>,
+    #[serde(rename = "secretMachineId")]
+    session_token: String,
     remember_me: bool,
 }
 
 /// response: POST /userSessions
 impl UserLoginPostBody {
     pub fn create(email: EmailAddress, password: Password, remember_me: bool) -> Self {
+        let random_uuid = Uuid::new_v4().to_string();
+        let random_uuid = random_uuid.as_bytes();
+        let nonce = base64::encode_config(random_uuid, base64::URL_SAFE_NO_PAD).to_lowercase();
+
         Self {
             email,
             password,
-            session_token: None,
+            session_token: nonce,
             remember_me
         }
     }
