@@ -84,6 +84,7 @@ async fn main() {
                 record_id.clone(),
                 to.clone(),
                 &authorization_info,
+                args.keep_record_id
             ).await;
         }
     }
