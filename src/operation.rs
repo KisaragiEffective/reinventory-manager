@@ -13,17 +13,15 @@ impl Operation {
         let client = reqwest::Client::new();
         debug!("post");
         if let Some(auth) = &crate::get_args_lock().login_info {
-            let email = auth.email.clone();
-            let password = auth.password.clone();
             let mut req = client
                 .post(format!("{BASE_POINT}/userSessions"));
 
-            if let Some(x) = &auth.totp {
+            if let Some(x) = auth.get_totp() {
                 req = req.header("TOTP", x.0.clone())
             }
 
             let token_res = req
-                .json(&UserLoginPostBody::create(email, password, false))
+                .json(&UserLoginPostBody::create(auth.clone(), false))
                 .send();
 
             debug!("post 2");
@@ -48,8 +46,9 @@ impl Operation {
         }
     }
 
-    pub async fn logout(owner_id: UserId, authorization_info: AuthorizationInfo) {
+    pub async fn logout(authorization_info: AuthorizationInfo) {
         let client = reqwest::Client::new();
+        let owner_id = authorization_info.owner_id.clone();
         client
             .delete(format!("{BASE_POINT}/userSessions/{owner_id}/{auth_token}", auth_token = authorization_info.token))
             .header(AUTHORIZATION, authorization_info.as_authorization_header_value())

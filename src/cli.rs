@@ -2,12 +2,13 @@ use once_cell::sync::OnceCell;
 use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
-use anyhow::{ensure, Result};
+use anyhow::{bail, ensure, Result};
 use fern::colors::ColoredLevelConfig;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
 use strum::{EnumString, Display as StrumDisplay};
-use crate::model::{LoginInfo, Password, RecordId, UserId};
+use serde::Serialize;
+use crate::model::{LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -17,29 +18,63 @@ pub struct Args {
     password: Option<Password>,
     #[clap(short, long)]
     totp: Option<OneTimePassword>,
+    #[clap(short, long)]
+    user_id: Option<UserId>,
     #[clap(long, default_value_t = LogLevel::Warn)]
     log_level: LogLevel,
+    #[clap(long)]
+    read_token_from_stdin: bool,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
 
-#[derive(Display, FromStr, Debug, Eq, PartialEq)]
+#[derive(Serialize, Display, FromStr, Debug, Eq, PartialEq, Clone)]
 pub struct OneTimePassword(pub String);
 
 impl Args {
     pub fn validate(self) -> Result<AfterArgs> {
-        ensure!(self.email.is_some() == self.password.is_some(), r#"You can not provide only one of authorization info.
-You must:
-a) provide both email and password
-b) leave blank both email and password (no login)"#);
+        let login_info = if let Some(password) = self.password {
+            match (self.email, self.user_id) {
+                (Some(_), Some(_)) => {
+                    bail!("You can not provide both --email and --user-id.")
+                }
+                (Some(email), None) => {
+                    Some(LoginInfo::ByPassword {
+                        user_identify_pointer: UserIdentifyPointer::email(email),
+                        password,
+                        totp: self.totp
+                    })
+                }
+                (None, Some(user_id)) => {
+                    Some(LoginInfo::ByPassword {
+                        user_identify_pointer: UserIdentifyPointer::user_id(user_id),
+                        password,
+                        totp: self.totp
+                    })
+                }
+                (None, None) => {
+                    bail!("You must provide --email or --user-id if --password is given.")
+                }
+            }
+        } else if self.read_token_from_stdin {
+            if let Some(user_id) = self.user_id {
+                debug!("auth: userid+token");
+                Some(LoginInfo::ByTokenFromStdin {
+                    user_id
+                })
+            } else {
+                bail!("You must provide --user-id if --read-token-from-stdin is given.")
+            }
+        } else {
+            debug!("auth: no login");
+            None
+        };
+
         Ok(AfterArgs {
-            login_info: self.email.and_then(|email| self.password.map(|password| LoginInfo {
-                email,
-                password,
-                totp: self.totp,
-            })),
+            login_info,
             sub_command: self.sub_command,
             log_level: self.log_level,
+            read_token_from_stdin: self.read_token_from_stdin,
         })
     }
 }
@@ -49,6 +84,7 @@ pub struct AfterArgs {
     pub login_info: Option<LoginInfo>,
     pub sub_command: ToolSubCommand,
     pub log_level: LogLevel,
+    pub read_token_from_stdin: bool,
 }
 
 #[derive(Subcommand, Debug)]

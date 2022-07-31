@@ -45,19 +45,67 @@ pub struct Password(String);
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct SessionToken(String);
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct LoginInfo {
-    pub email: EmailAddress,
-    pub password: Password,
-    pub totp: Option<OneTimePassword>,
+impl SessionToken {
+    pub fn new(inner: String) -> Self {
+        Self(inner)
+    }
+}
+
+#[derive(Serialize, Debug, Eq, PartialEq, Clone)]
+#[serde(untagged)]
+pub enum LoginInfo {
+    ByPassword {
+        #[serde(flatten)]
+        user_identify_pointer: UserIdentifyPointer,
+        password: Password,
+        totp: Option<OneTimePassword>,
+    },
+    ByTokenFromStdin {
+        user_id: UserId,
+    }
+}
+
+impl LoginInfo {
+    pub fn get_totp(&self) -> &Option<OneTimePassword> {
+        match self {
+            LoginInfo::ByPassword { totp, .. } => totp,
+            LoginInfo::ByTokenFromStdin { .. } => &None,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Eq, PartialEq, Clone)]
+#[serde(untagged)]
+pub enum UserIdentifyPointer {
+    Email {
+        email: EmailAddress,
+    },
+    UserId {
+        #[serde(rename = "ownerId")]
+        user_id: UserId
+    },
+}
+
+impl UserIdentifyPointer {
+    pub fn email(value: EmailAddress) -> Self {
+        Self::Email {
+            email: value
+        }
+    }
+
+    pub fn user_id(value: UserId) -> Self {
+        Self::UserId {
+            user_id: value
+        }
+    }
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 /// body: POST /userSessions
 pub struct UserLoginPostBody {
-    email: EmailAddress,
-    password: Password,
+    #[serde(flatten)]
+    login_method: LoginInfo,
     #[serde(rename = "secretMachineId")]
     session_token: String,
     remember_me: bool,
@@ -65,14 +113,13 @@ pub struct UserLoginPostBody {
 
 /// response: POST /userSessions
 impl UserLoginPostBody {
-    pub fn create(email: EmailAddress, password: Password, remember_me: bool) -> Self {
+    pub fn create(login_method: LoginInfo, remember_me: bool) -> Self {
         let random_uuid = Uuid::new_v4().to_string();
         let random_uuid = random_uuid.as_bytes();
         let nonce = base64::encode_config(random_uuid, base64::URL_SAFE_NO_PAD).to_lowercase();
 
         Self {
-            email,
-            password,
+            login_method,
             session_token: nonce,
             remember_me
         }
@@ -106,6 +153,13 @@ impl AuthorizationInfo {
         let val = format!("neos {owner_id}:{auth_token}", owner_id = self.owner_id.0, auth_token = self.token.0);
         debug!("auth: {val}");
         val
+    }
+
+    pub fn new(owner_id: UserId, token: SessionToken) -> Self {
+        Self {
+            owner_id,
+            token,
+        }
     }
 }
 
