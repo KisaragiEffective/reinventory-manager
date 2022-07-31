@@ -4,6 +4,8 @@ use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{ensure, Result};
 use fern::colors::ColoredLevelConfig;
+use log::LevelFilter;
+use strum::{EnumString, Display};
 use crate::model::{LoginInfo, Password, RecordId, UserId};
 
 #[derive(Parser, Debug)]
@@ -12,6 +14,8 @@ pub struct Args {
     email: Option<EmailAddress>,
     #[clap(short, long)]
     password: Option<Password>,
+    #[clap(long, default_value_t = LogLevel::Warn)]
+    log_level: LogLevel,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
@@ -28,6 +32,7 @@ b) leave blank both email and password (no login)"#);
                 password,
             })),
             sub_command: self.sub_command,
+            log_level: self.log_level,
         })
     }
 }
@@ -36,6 +41,7 @@ b) leave blank both email and password (no login)"#);
 pub struct AfterArgs {
     pub login_info: Option<LoginInfo>,
     pub sub_command: ToolSubCommand,
+    pub log_level: LogLevel,
 }
 
 #[derive(Subcommand, Debug)]
@@ -64,7 +70,7 @@ pub enum ToolSubCommand {
     },
 }
 
-pub fn init_fern() -> anyhow::Result<(), fern::InitError> {
+pub fn init_fern(log_level: LogLevel) -> anyhow::Result<(), fern::InitError> {
     let colors = ColoredLevelConfig::new();
 
     fern::Dispatch::new()
@@ -77,7 +83,7 @@ pub fn init_fern() -> anyhow::Result<(), fern::InitError> {
                 message
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(log_level.into())
         .chain(std::io::stderr())
         .chain(fern::log_file("output.log")?)
         .apply()?;
@@ -85,3 +91,29 @@ pub fn init_fern() -> anyhow::Result<(), fern::InitError> {
 }
 
 pub static ARGS: OnceCell<Arc<Mutex<AfterArgs>>> = OnceCell::new();
+
+#[derive(EnumString, Display, Copy, Clone, Debug, Eq, PartialEq)]
+pub enum LogLevel {
+    #[strum(serialize = "none")]
+    None,
+    #[strum(serialize = "error")]
+    Error,
+    #[strum(serialize = "warn")]
+    Warn,
+    #[strum(serialize = "info")]
+    Info,
+    #[strum(serialize = "debug")]
+    Debug,
+}
+
+impl Into<LevelFilter> for LogLevel {
+    fn into(self) -> LevelFilter {
+        match self {
+            LogLevel::None => LevelFilter::Off,
+            LogLevel::Error => LevelFilter::Error,
+            LogLevel::Warn => LevelFilter::Warn,
+            LogLevel::Info => LevelFilter::Info,
+            LogLevel::Debug => LevelFilter::Debug,
+        }
+    }
+}

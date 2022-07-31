@@ -37,14 +37,14 @@
 
 ##### 入力1
 ```shell
-neosvr-inventory-management list -u U-kisaragi-marine Inventory Public 2>/dev/null
+neosvr-inventory-management --log-level none list -u U-kisaragi-marine Inventory Public
 ```
 
 ##### 出力1
 (インベントリの各アイテムごとのJSON、1行に1アイテム)
 
 ##### 注意1
-* `2>/dev/null` でログの出力を抑制しています。
+* `--log-level none` でログの出力を抑制しています。
 
 #### 例2
 `U-kisaragi-marine`の`R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143`を`Inventory\\Work`に移動する

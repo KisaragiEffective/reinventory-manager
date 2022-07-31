@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 use clap::Parser;
 use log::{debug, info, warn};
-use crate::cli::{AfterArgs, Args, ARGS, ToolSubCommand};
+use crate::cli::{AfterArgs, Args, ARGS, LogLevel, ToolSubCommand};
 use crate::operation::Operation;
 
 mod operation;
@@ -12,7 +12,10 @@ mod cli;
 async fn main() {
     let args: Args = Args::parse();
     let args = args.validate().unwrap();
-    cli::init_fern().unwrap();
+    if args.log_level != LogLevel::None {
+        cli::init_fern(args.log_level).unwrap();
+    }
+
     debug!("fern initialized");
 
     ARGS.set(Arc::new(Mutex::new(args))).expect("once_cell error!!");
