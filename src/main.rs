@@ -24,6 +24,7 @@ async fn main() {
     let login_res = Operation::login().await;
     debug!("done.");
 
+    let authorization_info = &login_res.clone().map(|a| a.using_token);
     let sub_command = { &get_args_lock().sub_command };
     match sub_command {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
@@ -31,7 +32,7 @@ async fn main() {
             let xs = Operation::get_directory_items(
                 target_user.clone().or_else(|| login_res.clone().map(|a| a.user_id)).expect("To perform this action, I must identify you."),
                 base_dir.clone(),
-                &login_res.clone().map(|a| a.using_token),
+                authorization_info,
             ).await;
 
             debug!("record count: {len}", len = xs.len());
@@ -48,7 +49,7 @@ async fn main() {
             let res = Operation::get_directory_metadata(
                 owner_id,
                 base_dir.clone(),
-                &login_res.clone().map(|a| a.using_token),
+                authorization_info,
             ).await;
             println!("{}", serde_json::to_string(&res).unwrap());
         }
@@ -58,14 +59,13 @@ async fn main() {
                 owner_id.clone(),
                 record_id.clone(),
                 to.clone(),
-                &login_res.clone().map(|a| a.using_token),
+                authorization_info,
             ).await;
         }
     }
 
-    if let Some(session) = login_res {
-        let user_id = session.user_id;
-        Operation::logout(user_id, session.using_token).await;
+    if let Some(session) = authorization_info {
+        Operation::logout(session.clone()).await;
         info!("Logged out");
     }
 }

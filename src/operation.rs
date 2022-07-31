@@ -48,8 +48,9 @@ impl Operation {
         }
     }
 
-    pub async fn logout(owner_id: UserId, authorization_info: AuthorizationInfo) {
+    pub async fn logout(authorization_info: AuthorizationInfo) {
         let client = reqwest::Client::new();
+        let owner_id = authorization_info.owner_id.clone();
         client
             .delete(format!("{BASE_POINT}/userSessions/{owner_id}/{auth_token}", auth_token = authorization_info.token))
             .header(AUTHORIZATION, authorization_info.as_authorization_header_value())
