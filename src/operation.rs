@@ -2,17 +2,18 @@ use reqwest::header::AUTHORIZATION;
 use log::{debug, error, info, warn};
 use async_recursion::async_recursion;
 use uuid::Uuid;
-use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
+use crate::LoginInfo;
+use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, RecordId, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
 
 static BASE_POINT: &str = "https://api.neos.com/api";
 
 impl Operation {
-    pub async fn login() -> Option<LoginResponse> {
+    pub async fn login(login_info: Option<LoginInfo>) -> Option<LoginResponse> {
         let client = reqwest::Client::new();
         debug!("post");
-        if let Some(auth) = &crate::get_args_lock().login_info {
+        if let Some(auth) = login_info {
             let mut req = client
                 .post(format!("{BASE_POINT}/userSessions"));
 
@@ -21,7 +22,7 @@ impl Operation {
             }
 
             let token_res = req
-                .json(&UserLoginPostBody::create(auth.clone(), false))
+                .json(&UserLoginPostBody::create(auth, false))
                 .send();
 
             debug!("post 2");
@@ -126,7 +127,7 @@ impl Operation {
         res
     }
 
-    pub async fn move_record(owner_id: UserId, record_id: RecordId, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>) {
+    pub async fn move_record(owner_id: UserId, record_id: RecordId, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
         let client = reqwest::Client::new();
         let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
 
@@ -155,9 +156,16 @@ impl Operation {
             // region insert
             {
                 debug!("insert!");
-                // GUIDは小文字が「推奨」されているため念の為小文字にしておく
-                let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
-                debug!("new record id: {record_id}", record_id = &record_id);
+                let record_id = if keep_record_id {
+                    debug!("record id unchanged");
+                    record_id
+                } else {
+                    // GUIDは小文字が「推奨」されているため念の為小文字にしておく
+                    let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
+                    debug!("new record id: {record_id}", record_id = &record_id);
+                    record_id
+                };
+
                 let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
                 debug!("endpoint: {endpoint}", endpoint = &endpoint);
                 let mut req = client.put(endpoint);
@@ -178,7 +186,7 @@ impl Operation {
                     .await
                     .unwrap();
                 if res.status().is_success() {
-                    info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"));
+                    info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"), record_id = &record_id);
                 } else if res.status().is_client_error() {
                     error!("Client error ({status}): this is fatal bug. Please report this to bug tracker.", status = res.status());
                     // TODO: rollback

@@ -1,8 +1,6 @@
-use once_cell::sync::OnceCell;
-use std::sync::{Arc, Mutex};
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
-use anyhow::{bail, ensure, Result};
+use anyhow::{bail, Result};
 use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
@@ -24,6 +22,8 @@ pub struct Args {
     log_level: LogLevel,
     #[clap(long)]
     read_token_from_stdin: bool,
+    #[clap(long)]
+    keep_record_id: bool,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
@@ -75,19 +75,21 @@ impl Args {
             sub_command: self.sub_command,
             log_level: self.log_level,
             read_token_from_stdin: self.read_token_from_stdin,
+            keep_record_id: self.keep_record_id,
         })
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AfterArgs {
     pub login_info: Option<LoginInfo>,
     pub sub_command: ToolSubCommand,
     pub log_level: LogLevel,
     pub read_token_from_stdin: bool,
+    pub keep_record_id: bool,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum ToolSubCommand {
     List {
         #[clap(short = 'd', long, default_value_t = 1)]
@@ -132,8 +134,6 @@ pub fn init_fern(log_level: LogLevel) -> anyhow::Result<(), fern::InitError> {
         .apply()?;
     Ok(())
 }
-
-pub static ARGS: OnceCell<Arc<Mutex<AfterArgs>>> = OnceCell::new();
 
 #[derive(EnumString, StrumDisplay, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LogLevel {

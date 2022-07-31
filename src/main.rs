@@ -1,9 +1,8 @@
 use std::io::stdin;
 use std::process::exit;
-use std::sync::{Arc, Mutex, MutexGuard};
 use clap::Parser;
 use log::{debug, error, info, warn};
-use crate::cli::{AfterArgs, Args, ARGS, LogLevel, ToolSubCommand};
+use crate::cli::{Args, LogLevel, ToolSubCommand};
 use crate::model::{AuthorizationInfo, LoginInfo, SessionToken};
 use crate::operation::Operation;
 
@@ -23,7 +22,6 @@ async fn main() {
 
     let read_token_from_stdin = args.read_token_from_stdin;
     let auth_info = args.login_info.clone();
-    ARGS.set(Arc::new(Mutex::new(args))).expect("once_cell error!!");
 
     let authorization_info = if read_token_from_stdin {
         if let Some(LoginInfo::ByTokenFromStdin { user_id }) = auth_info {
@@ -40,13 +38,13 @@ async fn main() {
         }
     } else {
         debug!("login...");
-        let login_res = Operation::login().await;
+        let login_res = Operation::login(args.login_info).await;
         debug!("done.");
         let authorization_info = login_res.clone().map(|a| a.using_token);
         authorization_info
     };
 
-    let sub_command = { &get_args_lock().sub_command };
+    let sub_command = args.sub_command;
     match sub_command {
         ToolSubCommand::List { max_depth, base_dir, target_user } => {
             debug!("Inventory:");
@@ -86,6 +84,7 @@ async fn main() {
                 record_id.clone(),
                 to.clone(),
                 &authorization_info,
+                args.keep_record_id
             ).await;
         }
     }
@@ -94,8 +93,4 @@ async fn main() {
         Operation::logout(session).await;
         info!("Logged out");
     }
-}
-
-fn get_args_lock<'a>() -> MutexGuard<'a, AfterArgs> {
-    ARGS.get().unwrap().lock().unwrap()
 }
