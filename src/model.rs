@@ -27,6 +27,12 @@ impl FromStr for UserId {
 /// This is thin pointer to the actual Record. It is unique, and has one-by-one relation with Record.
 pub struct RecordId(pub String);
 
+impl RecordId {
+    pub fn make_random() -> Self {
+        Self(Uuid::new_v4().to_string().to_lowercase())
+    }
+}
+
 #[derive(Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct GroupId(String);
 
@@ -164,6 +170,25 @@ impl AuthorizationInfo {
 }
 
 #[derive(Debug, Clone)]
+pub struct SessionState {
+    pub machine_id: MachineId,
+    pub user_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MachineId(String);
+
+impl MachineId {
+    pub fn create_random() -> Self {
+        let random_uuid = Uuid::new_v4().to_string();
+        let random_uuid = random_uuid.as_bytes();
+        let nonce = base64::encode_config(random_uuid, base64::URL_SAFE_NO_PAD).to_lowercase();
+
+        Self(nonce)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct LoginResponse {
     pub using_token: AuthorizationInfo,
     pub user_id: UserId,
@@ -227,7 +252,7 @@ pub struct Record {
     pub last_update_by: Option<UserId>,
     #[serde(rename = "lastModifyingMachineId", default)]
     // Essential Toolsだと欠けている
-    pub last_update_machine: Option<String>,
+    pub last_update_machine: Option<MachineId>,
     pub name: String,
     pub record_type: RecordType,
     #[serde(default)]
@@ -246,9 +271,9 @@ pub struct Record {
     pub thumbnail_uri: Option<Url>,
     #[serde(rename = "creationTime", default)]
     // Essential Toolsだと欠けている
-    created_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
     #[serde(rename = "lastModificationTime", deserialize_with = "fallback_to_utc")]
-    updated_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub random_order: i32,
     pub visits: i32,
     pub rating: f64,
