@@ -2,13 +2,16 @@ use std::io::stdin;
 use std::process::exit;
 use clap::Parser;
 use log::{debug, error, info, warn};
+use once_cell::sync::Lazy;
 use crate::cli::{Args, LogLevel, ToolSubCommand};
-use crate::model::{AuthorizationInfo, LoginInfo, SessionToken};
+use crate::model::{AuthorizationInfo, LoginInfo, MachineId, SessionState, SessionToken};
 use crate::operation::Operation;
 
 mod operation;
 mod model;
 mod cli;
+
+static MACHINE_ID_IN_THIS_SESSION: Lazy<MachineId> = Lazy::new(|| MachineId::create_random());
 
 #[tokio::main]
 async fn main() {
@@ -84,7 +87,11 @@ async fn main() {
                 record_id.clone(),
                 to.clone(),
                 &authorization_info,
-                args.keep_record_id
+                args.keep_record_id,
+                SessionState {
+                    machine_id: MACHINE_ID_IN_THIS_SESSION.clone(),
+                    user_name: Operation::lookup_user_name(owner_id).await.expect("The user id does not exist"),
+                },
             ).await;
         }
     }
