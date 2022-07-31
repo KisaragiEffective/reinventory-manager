@@ -45,6 +45,12 @@ pub struct Password(String);
 #[derive(FromStr, Display, Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 pub struct SessionToken(String);
 
+impl SessionToken {
+    pub fn new(inner: String) -> Self {
+        Self(inner)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct LoginInfo {
     pub email: EmailAddress,

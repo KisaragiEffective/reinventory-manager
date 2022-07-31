@@ -19,6 +19,8 @@ pub struct Args {
     totp: Option<OneTimePassword>,
     #[clap(long, default_value_t = LogLevel::Warn)]
     log_level: LogLevel,
+    #[clap(long)]
+    read_token_from_stdin: bool,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
@@ -40,6 +42,7 @@ b) leave blank both email and password (no login)"#);
             })),
             sub_command: self.sub_command,
             log_level: self.log_level,
+            read_token_from_stdin: self.read_token_from_stdin,
         })
     }
 }
@@ -49,6 +52,7 @@ pub struct AfterArgs {
     pub login_info: Option<LoginInfo>,
     pub sub_command: ToolSubCommand,
     pub log_level: LogLevel,
+    pub read_token_from_stdin: bool,
 }
 
 #[derive(Subcommand, Debug)]
