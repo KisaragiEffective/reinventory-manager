@@ -130,6 +130,7 @@ impl Operation {
     pub async fn move_records(owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
         let client = reqwest::Client::new();
         for record_id in records_to_move {
+            debug!("checking {record_id}", record_id = &record_id);
             let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
 
             if let Some(found_record) = find {
