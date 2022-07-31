@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{bail, Result};
+use atty::Stream;
 use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
@@ -24,8 +25,18 @@ pub struct Args {
     read_token_from_stdin: bool,
     #[clap(long)]
     keep_record_id: bool,
+    #[clap(short, long = "color")]
+    color_policy: ColorPolicy,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
+}
+
+#[derive(EnumString, Copy, Clone, Eq, PartialEq, Debug)]
+#[strum(serialize_all = "camelCase")]
+pub enum ColorPolicy {
+    Always,
+    Auto,
+    Never,
 }
 
 #[derive(Serialize, Display, FromStr, Debug, Eq, PartialEq, Clone)]
@@ -70,12 +81,19 @@ impl Args {
             None
         };
 
+        let colored = match self.color_policy {
+            ColorPolicy::Always => true,
+            ColorPolicy::Auto => atty::is(Stream::Stdout),
+            ColorPolicy::Never => false
+        };
+
         Ok(AfterArgs {
             login_info,
             sub_command: self.sub_command,
             log_level: self.log_level,
             read_token_from_stdin: self.read_token_from_stdin,
             keep_record_id: self.keep_record_id,
+            colored,
         })
     }
 }
@@ -87,6 +105,7 @@ pub struct AfterArgs {
     pub log_level: LogLevel,
     pub read_token_from_stdin: bool,
     pub keep_record_id: bool,
+    pub colored: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
