@@ -2,6 +2,7 @@ use reqwest::header::AUTHORIZATION;
 use log::{debug, error, info, warn};
 use async_recursion::async_recursion;
 use uuid::Uuid;
+use crate::get_args_lock;
 use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
@@ -155,9 +156,22 @@ impl Operation {
             // region insert
             {
                 debug!("insert!");
-                // GUIDは小文字が「推奨」されているため念の為小文字にしておく
-                let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
-                debug!("new record id: {record_id}", record_id = &record_id);
+                let keep_id = {
+                    let a = get_args_lock();
+                    let v = a.keep_record_id;
+                    drop(a);
+                    v
+                };
+                let record_id = if keep_id {
+                    debug!("record id unchanged");
+                    record_id
+                } else {
+                    // GUIDは小文字が「推奨」されているため念の為小文字にしておく
+                    let record_id = RecordId(format!("R-{}", Uuid::new_v4().to_string().to_lowercase()));
+                    debug!("new record id: {record_id}", record_id = &record_id);
+                    record_id
+                };
+
                 let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
                 debug!("endpoint: {endpoint}", endpoint = &endpoint);
                 let mut req = client.put(endpoint);
@@ -178,7 +192,7 @@ impl Operation {
                     .await
                     .unwrap();
                 if res.status().is_success() {
-                    info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"));
+                    info!("Success! {record_id} for {owner_id} was moved from {from} to {to}.", to = to.join("\\"), record_id = &record_id);
                 } else if res.status().is_client_error() {
                     error!("Client error ({status}): this is fatal bug. Please report this to bug tracker.", status = res.status());
                     // TODO: rollback

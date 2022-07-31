@@ -24,6 +24,8 @@ pub struct Args {
     log_level: LogLevel,
     #[clap(long)]
     read_token_from_stdin: bool,
+    #[clap(long)]
+    keep_record_id: bool,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
@@ -75,6 +77,7 @@ impl Args {
             sub_command: self.sub_command,
             log_level: self.log_level,
             read_token_from_stdin: self.read_token_from_stdin,
+            keep_record_id: self.keep_record_id,
         })
     }
 }
@@ -85,6 +88,7 @@ pub struct AfterArgs {
     pub sub_command: ToolSubCommand,
     pub log_level: LogLevel,
     pub read_token_from_stdin: bool,
+    pub keep_record_id: bool,
 }
 
 #[derive(Subcommand, Debug)]
