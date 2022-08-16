@@ -24,7 +24,7 @@ base64 = "0.13.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.2.15", features = ["derive"] }
 derive_more = "0.99.17"
-email_address = "0.2.1"
+email_address = "0.2.3"
 fern = { version = "0.6.1", features = ["colored"] }
 log = "0.4.17"
 once_cell = "1.13.0"
