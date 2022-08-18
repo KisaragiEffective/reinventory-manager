@@ -7,7 +7,7 @@ use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
 use strum::{EnumString, Display as StrumDisplay};
 use serde::Serialize;
-use crate::model::{LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
+use crate::model::{AbsoluteInventoryPath, LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -115,14 +115,14 @@ pub enum ToolSubCommand {
         max_depth: usize,
         #[clap(short = 'u', long)]
         target_user: Option<UserId>,
-        #[clap(default_values_t = Vec::<String>::new())]
-        base_dir: Vec<String>,
+        #[clap(default_value_t = Default::default())]
+        base_dir: AbsoluteInventoryPath,
     },
     Metadata {
         #[clap(short = 'u', long)]
         target_user: Option<UserId>,
-        #[clap(default_values_t = Vec::<String>::new())]
-        base_dir: Vec<String>,
+        #[clap(default_value_t = Default::default())]
+        base_dir: AbsoluteInventoryPath,
     },
     Move {
         #[clap(short = 'u', long)]

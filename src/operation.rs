@@ -3,7 +3,7 @@ use log::{debug, error, info, warn};
 use async_recursion::async_recursion;
 use uuid::Uuid;
 use crate::LoginInfo;
-use crate::model::{AuthorizationInfo, DirectoryMetadata, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
+use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 pub struct Operation;
 
@@ -58,9 +58,9 @@ impl Operation {
             .unwrap();
     }
 
-    pub async fn get_directory_items(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> Vec<Record> {
+    pub async fn get_directory_items(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> Vec<Record> {
         let client = reqwest::Client::new();
-        let path = path.join("%5C");
+        let path = path.to_uri_query_value();
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
 
@@ -102,11 +102,11 @@ impl Operation {
         res
     }
 
-    pub async fn get_directory_metadata(owner_id: UserId, path: Vec<String>, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
+    pub async fn get_directory_metadata(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
         let client = reqwest::Client::new();
-        let path = path.join("/");
+        let path = path.to_absolute_path();
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/root/{path}");
 
         debug!("endpoint: {endpoint}", endpoint = &endpoint);
