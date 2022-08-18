@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+use std::fmt::{Display, Formatter, Write};
 use url::Url;
 use derive_more::{Display, FromStr};
 use std::str::FromStr;
@@ -322,4 +324,36 @@ pub struct DirectoryMetadata {
     #[serde(rename = "lastModificationTime")]
     updated_at: DateTime<Utc>,
 
+}
+
+/// インベントリのルートを起点とする絶対パスを表現する。
+/// 要素に`.`や`..`が入っていても、特別な意味を持たず、文字通り扱われることに注意。
+#[derive(Eq, PartialEq, Default, Debug, Clone)]
+pub struct AbsoluteInventoryPath {
+    inner: Vec<String>
+}
+
+impl AbsoluteInventoryPath {
+    pub fn to_uri_query_value(&self) -> String {
+        self.inner.join("%5C")
+    }
+
+    pub fn to_absolute_path(&self) -> String {
+        self.inner.join("/")
+    }
+}
+
+impl FromStr for AbsoluteInventoryPath {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self { inner: s.split('/').map(|s| s.to_string()).collect() })
+    }
+}
+
+// For clap
+impl Display for AbsoluteInventoryPath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_absolute_path().as_str())
+    }
 }
