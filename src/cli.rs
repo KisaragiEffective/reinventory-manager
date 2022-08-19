@@ -25,13 +25,13 @@ pub struct Args {
     read_token_from_stdin: bool,
     #[clap(long)]
     keep_record_id: bool,
-    #[clap(short, long = "color")]
+    #[clap(short, long = "color", default_value_t = ColorPolicy::Auto)]
     color_policy: ColorPolicy,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
 
-#[derive(EnumString, Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(EnumString, Display, Copy, Clone, Eq, PartialEq, Debug)]
 #[strum(serialize_all = "camelCase")]
 pub enum ColorPolicy {
     Always,
