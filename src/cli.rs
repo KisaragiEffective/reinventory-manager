@@ -32,7 +32,7 @@ pub struct Args {
 }
 
 #[derive(EnumString, Display, Copy, Clone, Eq, PartialEq, Debug)]
-#[strum(serialize_all = "camelCase")]
+#[strum(ascii_case_insensitive)]
 pub enum ColorPolicy {
     Always,
     Auto,
