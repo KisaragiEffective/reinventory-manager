@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![warn(clippy::pedantic, clippy::nursery)]
+
 use std::io::stdin;
 use std::process::exit;
 use clap::Parser;
@@ -40,13 +43,12 @@ async fn main() {
         debug!("login...");
         let login_res = Operation::login(args.login_info).await;
         debug!("done.");
-        let authorization_info = login_res.clone().map(|a| a.using_token);
-        authorization_info
+        login_res.map(|a| a.using_token)
     };
 
     let sub_command = args.sub_command;
     match sub_command {
-        ToolSubCommand::List { max_depth, base_dir, target_user } => {
+        ToolSubCommand::List { max_depth: _, base_dir, target_user } => {
             debug!("Inventory:");
             let xs = Operation::get_directory_items(
                 target_user

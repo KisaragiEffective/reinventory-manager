@@ -1,6 +1,5 @@
 use reqwest::header::AUTHORIZATION;
 use log::{debug, error, info, warn};
-use async_recursion::async_recursion;
 use uuid::Uuid;
 use crate::LoginInfo;
 use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
@@ -18,7 +17,7 @@ impl Operation {
                 .post(format!("{BASE_POINT}/userSessions"));
 
             if let Some(x) = auth.get_totp() {
-                req = req.header("TOTP", x.0.clone())
+                req = req.header("TOTP", x.0.clone());
             }
 
             let token_res = req
@@ -34,7 +33,7 @@ impl Operation {
                 .unwrap();
 
             debug!("post 3");
-            let using_token = (&token_res).to_authorization_info();
+            let using_token = token_res.to_authorization_info();
             let user_id = token_res.user_id;
 
             debug!("post 4");
@@ -72,7 +71,7 @@ impl Operation {
             let mut res = client.get(&endpoint);
 
             if let Some(authorization_info) = authorization_info {
-                res = res.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
             }
 
             let res = res
@@ -88,18 +87,16 @@ impl Operation {
         let mut res = client.get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
-            res = res.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+            res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
         }
 
-        let res = res
+        res
             .send()
             .await
             .unwrap()
             .json()
             .await
-            .unwrap();
-
-        res
+            .unwrap()
     }
 
     pub async fn get_directory_metadata(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
@@ -113,18 +110,16 @@ impl Operation {
         let mut res = client.get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
-            res = res.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+            res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
         }
 
-        let res = res
+        res
             .send()
             .await
             .unwrap()
             .json()
             .await
-            .unwrap();
-
-        res
+            .unwrap()
     }
 
     pub async fn move_records(owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
@@ -143,7 +138,7 @@ impl Operation {
 
                 debug!("found, moving");
 
-                let from = (&found_record.path).clone();
+                let from = found_record.path.clone();
 
                 // region delete old record
                 {
@@ -151,7 +146,7 @@ impl Operation {
                     let mut req = client.delete(endpoint);
 
                     if let Some(authorization_info) = authorization_info {
-                        req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                        req = req.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
                     }
 
                     let deleted = req
@@ -177,11 +172,11 @@ impl Operation {
 
                     let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
                     debug!("endpoint: {endpoint}", endpoint = &endpoint);
-                    let mut req = client.put(endpoint);
+                    let mut request = client.put(endpoint);
 
                     if let Some(authorization_info) = authorization_info {
                         debug!("auth set");
-                        req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+                        request = request.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
                     }
 
                     let mut record = found_record.clone();
@@ -189,7 +184,7 @@ impl Operation {
                     record.id = record_id.clone();
 
                     debug!("requesting...");
-                    let res = req
+                    let res = request
                         .json(&record)
                         .send()
                         .await
@@ -202,7 +197,7 @@ impl Operation {
                     } else if res.status().is_server_error() {
                         error!("Server error ({status}): Please try again in later.", status = res.status());
                     } else {
-                        warn!("Unhandled status code: {status}", status = res.status())
+                        warn!("Unhandled status code: {status}", status = res.status());
                     }
                     debug!("Response: {res:?}", res = &res);
                 }
@@ -217,15 +212,15 @@ impl Operation {
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
         let client = reqwest::Client::new();
 
-        let mut req = client
+        let mut request = client
             .get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
             debug!("auth set");
-            req = req.header(reqwest::header::AUTHORIZATION, authorization_info.as_authorization_header_value());
+            request = request.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
         }
 
-        let res = req
+        let res = request
             .send()
             .await
             .expect("HTTP connection error");
