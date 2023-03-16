@@ -1,10 +1,10 @@
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{bail, Result};
-use atty::Stream;
 use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter};
 use derive_more::{Display, FromStr};
+use is_terminal::IsTerminal;
 use strum::{EnumString, Display as StrumDisplay};
 use serde::Serialize;
 use crate::model::{AbsoluteInventoryPath, LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
@@ -83,7 +83,7 @@ impl Args {
 
         let colored = match self.color_policy {
             ColorPolicy::Always => true,
-            ColorPolicy::Auto => atty::is(Stream::Stdout),
+            ColorPolicy::Auto => std::io::stdout().is_terminal(),
             ColorPolicy::Never => false
         };
 
