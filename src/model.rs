@@ -7,6 +7,8 @@ use email_address::EmailAddress;
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::Error;
 use anyhow::ensure;
+use base64::alphabet::Alphabet;
+use base64::Engine;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;
 use uuid::Uuid;
@@ -116,9 +118,14 @@ pub struct UserLoginPostBody {
 /// response: POST /userSessions
 impl UserLoginPostBody {
     pub fn create(login_method: LoginInfo, remember_me: bool) -> Self {
+        use base64::engine::GeneralPurpose as Base64Engine;
         let random_uuid = Uuid::new_v4().to_string();
         let random_uuid = random_uuid.as_bytes();
-        let nonce = base64::encode_config(random_uuid, base64::URL_SAFE_NO_PAD).to_lowercase();
+        static BASE64_ENGINE: Base64Engine = Base64Engine::new(
+            &base64::alphabet::URL_SAFE,
+            base64::engine::GeneralPurposeConfig::new().with_encode_padding(false)
+        );
+        let nonce = BASE64_ENGINE.encode(random_uuid);
 
         Self {
             login_method,
