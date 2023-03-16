@@ -1,5 +1,5 @@
 use std::convert::Infallible;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 use url::Url;
 use derive_more::{Display, FromStr};
 use std::str::FromStr;
@@ -18,7 +18,7 @@ pub struct UserId(String);
 impl FromStr for UserId {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         ensure!(s.starts_with("U-"), "An UserId must be prefixed with `U-`");
         Ok(Self(s.to_string()))
     }
@@ -48,7 +48,7 @@ pub struct Password(String);
 pub struct SessionToken(String);
 
 impl SessionToken {
-    pub fn new(inner: String) -> Self {
+    pub const fn new(inner: String) -> Self {
         Self(inner)
     }
 }
@@ -68,10 +68,10 @@ pub enum LoginInfo {
 }
 
 impl LoginInfo {
-    pub fn get_totp(&self) -> &Option<OneTimePassword> {
+    pub const fn get_totp(&self) -> &Option<OneTimePassword> {
         match self {
-            LoginInfo::ByPassword { totp, .. } => totp,
-            LoginInfo::ByTokenFromStdin { .. } => &None,
+            Self::ByPassword { totp, .. } => totp,
+            Self::ByTokenFromStdin { .. } => &None,
         }
     }
 }
@@ -89,13 +89,13 @@ pub enum UserIdentifyPointer {
 }
 
 impl UserIdentifyPointer {
-    pub fn email(value: EmailAddress) -> Self {
+    pub const fn email(value: EmailAddress) -> Self {
         Self::Email {
             email: value
         }
     }
 
-    pub fn user_id(value: UserId) -> Self {
+    pub const fn user_id(value: UserId) -> Self {
         Self::UserId {
             user_id: value
         }
@@ -157,7 +157,7 @@ impl AuthorizationInfo {
         val
     }
 
-    pub fn new(owner_id: UserId, token: SessionToken) -> Self {
+    pub const fn new(owner_id: UserId, token: SessionToken) -> Self {
         Self {
             owner_id,
             token,
@@ -203,7 +203,7 @@ impl<'de> Deserialize<'de> for RecordType {
             "texture" | "Texture" => Ok(Self::Texture),
             "audio" | "Audio" => Ok(Self::Audio),
             "link" | "Link" => Ok(Self::Link),
-            _ => Err(D::Error::custom("dir | obj | text | aud | lnk")),
+            _ => Err(Error::custom("dir | obj | text | aud | lnk")),
         }
     }
 }
@@ -211,8 +211,8 @@ impl<'de> Deserialize<'de> for RecordType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 // fields are only for serde-integrations. I'd like to export them in JSON.
-#[allow(dead_code)]
-/// https://neos-api.polylogix.studio/#tag/Records/operation/getRecordAtPath
+#[allow(dead_code, clippy::struct_excessive_bools)]
+/// <https://neos-api.polylogix.studio/#tag/Records/operation/getRecordAtPath>
 pub struct Record {
     pub id: RecordId,
     /// ## Format
@@ -262,14 +262,14 @@ pub struct Record {
 }
 
 /// Essential Toolsだとタイムゾーンが欠けているのでパースに失敗する (?!)
-/// see: https://github.com/Neos-Metaverse/NeosPublic/issues/3714
+/// see: <https://github.com/Neos-Metaverse/NeosPublic/issues/3714>
 fn fallback_to_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
     where
         D: Deserializer<'de>,
 {
     #[derive(Deserialize)]
     #[serde(untagged)]
-    /// see https://users.rust-lang.org/t/serde-clone-deserializer/49568/3
+    /// see <https://users.rust-lang.org/t/serde-clone-deserializer/49568/3>
     enum LocalHack {
         WithTimeZone(DateTime<Utc>),
         WithoutTimeZone(NaiveDateTime),
@@ -303,6 +303,7 @@ pub struct Submission {
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(clippy::struct_excessive_bools)]
 pub struct DirectoryMetadata {
     id: RecordId,
     global_version: u32,
@@ -347,7 +348,7 @@ impl FromStr for AbsoluteInventoryPath {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self { inner: s.split('/').map(|s| s.to_string()).collect() })
+        Ok(Self { inner: s.split('/').map(std::string::ToString::to_string).collect() })
     }
 }
 

@@ -134,7 +134,7 @@ pub enum ToolSubCommand {
     },
 }
 
-pub fn init_fern(log_level: LogLevel) -> anyhow::Result<(), fern::InitError> {
+pub fn init_fern(log_level: LogLevel) -> Result<(), fern::InitError> {
     let colors = ColoredLevelConfig::new();
 
     fern::Dispatch::new()
@@ -145,7 +145,7 @@ pub fn init_fern(log_level: LogLevel) -> anyhow::Result<(), fern::InitError> {
                 record.target(),
                 colors.color(record.level()),
                 message
-            ))
+            ));
         })
         .level(log_level.into())
         .chain(std::io::stderr())
@@ -168,14 +168,14 @@ pub enum LogLevel {
     Debug,
 }
 
-impl Into<LevelFilter> for LogLevel {
-    fn into(self) -> LevelFilter {
-        match self {
-            LogLevel::None => LevelFilter::Off,
-            LogLevel::Error => LevelFilter::Error,
-            LogLevel::Warn => LevelFilter::Warn,
-            LogLevel::Info => LevelFilter::Info,
-            LogLevel::Debug => LevelFilter::Debug,
+impl From<LogLevel> for LevelFilter {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::None => Self::Off,
+            LogLevel::Error => Self::Error,
+            LogLevel::Warn => Self::Warn,
+            LogLevel::Info => Self::Info,
+            LogLevel::Debug => Self::Debug,
         }
     }
 }
