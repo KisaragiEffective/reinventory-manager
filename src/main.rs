@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![warn(clippy::pedantic, clippy::nursery)]
+
 use std::io::stdin;
 use std::process::exit;
 use clap::Parser;
