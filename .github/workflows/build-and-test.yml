@@ -16,6 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2.2.1
+      with:
+        prefix-key: ${{ matrix.os }}-${{ env.CI_RUSTC_VERSION }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build --verbose
     - name: Run tests
