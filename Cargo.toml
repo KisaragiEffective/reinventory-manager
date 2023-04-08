@@ -22,7 +22,7 @@ async-recursion = "1.0.4"
 is-terminal = "0.4.7"
 base64 = "0.21.0"
 chrono = { version = "0.4.24", features = ["serde"] }
-clap = { version = "4.1.9", features = ["derive"] }
+clap = { version = "4.2.1", features = ["derive"] }
 derive_more = "0.99.17"
 email_address = "0.2.4"
 fern = { version = "0.6.1", features = ["colored"] }
