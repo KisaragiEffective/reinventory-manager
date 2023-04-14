@@ -97,7 +97,7 @@ neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890 move -r R
 ## ライセンス
 * `src`ディレクトリ以下のソースコード、ソースコードに付随するドキュメント、及び配布されるバイナリはRust本体のライセンスに合わせて、MITライセンスとApache License, Version 2.0 (SPDX: `MIT OR Apache-2.0`) とします。
   * このライセンスはデュアルライセンスであり、あなたはどちらかのライセンスを選ぶことができます。
-* README.md、Cargo.lock、Cargo.tomlはCC0とします。
+* `README.md`、`Cargo.lock`、`Cargo.toml`、`renovate.json`、及び配布されたバイナリから計算したハッシュ値を表示するファイルはCC0とします。
 * ファイルの中に合理的な方法でライセンスが表示されている場合は、そのファイルはそのライセンスによってライセンスされています。
 * その他のファイルについては著作権を留保します。
 
