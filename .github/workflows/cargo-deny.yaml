@@ -5,11 +5,13 @@ on:
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
+      - ".github/workflows/cargo-deny.yaml"
     branches: [ "master" ]
   pull_request:
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
+      - ".github/workflows/cargo-deny.yaml"
     branches: [ "master" ]
 
 env:
