@@ -1,5 +1,8 @@
+use std::sync::Arc;
 use reqwest::header::AUTHORIZATION;
 use log::{debug, error, info, warn};
+use once_cell::sync::Lazy;
+use reqwest::{Client, ClientBuilder};
 use uuid::Uuid;
 use crate::LoginInfo;
 use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
@@ -7,13 +10,18 @@ use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, 
 pub struct Operation;
 
 static BASE_POINT: &str = "https://api.neos.com/api";
+static CLIENT: Lazy<Arc<Client>> = Lazy::new(|| Arc::new(
+    ClientBuilder::new().user_agent("NeosVR-Inventory-Manager/0.1")
+        .use_rustls_tls()
+        .build()
+        .expect("failed to initialize HTTP client")
+));
 
 impl Operation {
     pub async fn login(login_info: Option<LoginInfo>) -> Option<LoginResponse> {
-        let client = reqwest::Client::new();
         debug!("post");
         if let Some(auth) = login_info {
-            let mut req = client
+            let mut req = CLIENT
                 .post(format!("{BASE_POINT}/userSessions"));
 
             if let Some(x) = auth.get_totp() {
@@ -47,9 +55,8 @@ impl Operation {
     }
 
     pub async fn logout(authorization_info: AuthorizationInfo) {
-        let client = reqwest::Client::new();
         let owner_id = authorization_info.owner_id.clone();
-        client
+        CLIENT
             .delete(format!("{BASE_POINT}/userSessions/{owner_id}/{auth_token}", auth_token = authorization_info.token))
             .header(AUTHORIZATION, authorization_info.as_authorization_header_value())
             .send()
@@ -58,7 +65,6 @@ impl Operation {
     }
 
     pub async fn get_directory_items(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> Vec<Record> {
-        let client = reqwest::Client::new();
         let path = path.to_uri_query_value();
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
@@ -68,7 +74,7 @@ impl Operation {
 
         debug!("endpoint: {endpoint}", endpoint = &endpoint);
         {
-            let mut res = client.get(&endpoint);
+            let mut res = CLIENT.get(&endpoint);
 
             if let Some(authorization_info) = authorization_info {
                 res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
@@ -84,7 +90,7 @@ impl Operation {
 
             debug!("raw output: {res}");
         }
-        let mut res = client.get(endpoint);
+        let mut res = CLIENT.get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
             res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
@@ -102,12 +108,11 @@ impl Operation {
     pub async fn get_directory_metadata(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
-        let client = reqwest::Client::new();
         let path = path.to_absolute_path();
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/root/{path}");
 
         debug!("endpoint: {endpoint}", endpoint = &endpoint);
-        let mut res = client.get(endpoint);
+        let mut res = CLIENT.get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
             res = res.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
@@ -123,7 +128,6 @@ impl Operation {
     }
 
     pub async fn move_records(owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
-        let client = reqwest::Client::new();
         for record_id in records_to_move {
             debug!("checking {record_id}", record_id = &record_id);
             let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
@@ -143,7 +147,7 @@ impl Operation {
                 // region delete old record
                 {
                     let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id);
-                    let mut req = client.delete(endpoint);
+                    let mut req = CLIENT.delete(endpoint);
 
                     if let Some(authorization_info) = authorization_info {
                         req = req.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
@@ -172,7 +176,7 @@ impl Operation {
 
                     let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
                     debug!("endpoint: {endpoint}", endpoint = &endpoint);
-                    let mut request = client.put(endpoint);
+                    let mut request = CLIENT.put(endpoint);
 
                     if let Some(authorization_info) = authorization_info {
                         debug!("auth set");
@@ -210,9 +214,8 @@ impl Operation {
 
     pub async fn get_record(owner_id: UserId, record_id: RecordId, authorization_info: &Option<AuthorizationInfo>) -> Option<Record> {
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
-        let client = reqwest::Client::new();
 
-        let mut request = client
+        let mut request = CLIENT
             .get(endpoint);
 
         if let Some(authorization_info) = authorization_info {
