@@ -1,0 +1,42 @@
+name: Run cargo deny check
+
+on:
+  push:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "deny.toml"
+      - ".github/workflows/cargo-deny.yaml"
+    branches: [ "master" ]
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "deny.toml"
+      - ".github/workflows/cargo-deny.yaml"
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install cargo-deny (pre-built)
+      run: |
+        git_tag="0.13.9"
+        d="$(mktemp)"
+        f="cargo-deny-${git_tag}-x86_64-unknown-linux-musl"
+        exe_name="cargo-deny"
+        curl -L "https://github.com/EmbarkStudios/cargo-deny/releases/download/$git_tag/${f}.tar.gz" > "$d"
+        e="${f}/${exe_name}"
+        tar xf "$d" "$e"
+        chmod +x "$e"
+        mv "$e" ~/.cargo/bin && cargo deny --version
+        rm "$d"
+    - name: Check (cargo-deny)
+      run: cargo deny check
