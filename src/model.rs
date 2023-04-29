@@ -7,7 +7,6 @@ use email_address::EmailAddress;
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::Error;
 use anyhow::ensure;
-use base64::alphabet::Alphabet;
 use base64::Engine;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use log::debug;

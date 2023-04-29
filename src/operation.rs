@@ -5,9 +5,7 @@ use once_cell::sync::Lazy;
 use reqwest::{Client, ClientBuilder};
 use uuid::Uuid;
 use crate::LoginInfo;
-use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, LoginResponse, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
-
-pub struct Operation;
+use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, Record, RecordId, RecordType, UserId, UserLoginPostBody, UserLoginPostResponse};
 
 static BASE_POINT: &str = "https://api.neos.com/api";
 static CLIENT: Lazy<Arc<Client>> = Lazy::new(|| Arc::new(
@@ -17,9 +15,10 @@ static CLIENT: Lazy<Arc<Client>> = Lazy::new(|| Arc::new(
         .expect("failed to initialize HTTP client")
 ));
 
-impl Operation {
-    pub async fn login(login_info: Option<LoginInfo>) -> Option<LoginResponse> {
-        debug!("post");
+pub struct PreLogin;
+
+impl PreLogin {
+    pub async fn login(login_info: Option<LoginInfo>) -> LoggedIn {
         if let Some(auth) = login_info {
             let mut req = CLIENT
                 .post(format!("{BASE_POINT}/userSessions"));
@@ -45,26 +44,40 @@ impl Operation {
             let user_id = token_res.user_id;
 
             debug!("post 4");
-            Some(LoginResponse {
-                using_token,
-                user_id,
-            })
+            Self::from_session_data(Some(user_id), Some(using_token))
         } else {
-            None
+            Self::from_session_data(None, None)
         }
     }
 
-    pub async fn logout(authorization_info: AuthorizationInfo) {
-        let owner_id = authorization_info.owner_id.clone();
-        CLIENT
-            .delete(format!("{BASE_POINT}/userSessions/{owner_id}/{auth_token}", auth_token = authorization_info.token))
-            .header(AUTHORIZATION, authorization_info.as_authorization_header_value())
-            .send()
-            .await
-            .unwrap();
+    pub const fn from_session_data(current_user: Option<UserId>, authorization_info: Option<AuthorizationInfo>) -> LoggedIn {
+        LoggedIn {
+            authorization_info,
+            current_user,
+        }
+    }
+}
+
+pub struct LoggedIn {
+    authorization_info: Option<AuthorizationInfo>,
+    current_user: Option<UserId>,
+}
+
+impl LoggedIn {
+    pub async fn logout(self) {
+        if let Some(authorization_info) = self.authorization_info {
+            let owner_id = authorization_info.owner_id.clone();
+            CLIENT
+                .delete(format!("{BASE_POINT}/userSessions/{owner_id}/{auth_token}", auth_token = authorization_info.token))
+                .header(AUTHORIZATION, authorization_info.as_authorization_header_value())
+                .send()
+                .await
+                .unwrap();
+        }
     }
 
-    pub async fn get_directory_items(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> Vec<Record> {
+    pub async fn get_directory_items(&self, owner_id: UserId, path: AbsoluteInventoryPath) -> Vec<Record> {
+        let authorization_info = &self.authorization_info;
         let path = path.to_uri_query_value();
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
@@ -105,9 +118,10 @@ impl Operation {
             .unwrap()
     }
 
-    pub async fn get_directory_metadata(owner_id: UserId, path: AbsoluteInventoryPath, authorization_info: &Option<AuthorizationInfo>) -> DirectoryMetadata {
+    pub async fn get_directory_metadata(&self, owner_id: UserId, path: AbsoluteInventoryPath) -> DirectoryMetadata {
         // NOTE:
         // https://api.neos.com/api/users/U-kisaragi-marine/records/root/Inventory/Test <-- これはディレクトリのメタデータを単体で返す
+        let authorization_info = &self.authorization_info;
         let path = path.to_absolute_path();
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/root/{path}");
 
@@ -127,10 +141,12 @@ impl Operation {
             .unwrap()
     }
 
-    pub async fn move_records(owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, authorization_info: &Option<AuthorizationInfo>, keep_record_id: bool) {
+    pub async fn move_records(&self, owner_id: UserId, records_to_move: Vec<RecordId>, to: Vec<String>, keep_record_id: bool) {
+        let authorization_info = &self.authorization_info;
+
         for record_id in records_to_move {
             debug!("checking {record_id}", record_id = &record_id);
-            let find = Self::get_record(owner_id.clone(), record_id.clone(), authorization_info).await;
+            let find = self.get_record(owner_id.clone(), record_id.clone()).await;
 
             if let Some(found_record) = find {
                 if found_record.record_type == RecordType::Directory {
@@ -212,13 +228,13 @@ impl Operation {
         }
     }
 
-    pub async fn get_record(owner_id: UserId, record_id: RecordId, authorization_info: &Option<AuthorizationInfo>) -> Option<Record> {
+    pub async fn get_record(&self, owner_id: UserId, record_id: RecordId) -> Option<Record> {
         let endpoint = format!("{BASE_POINT}/users/{owner_id}/records/{record_id}", owner_id = &owner_id, record_id = &record_id);
 
         let mut request = CLIENT
             .get(endpoint);
 
-        if let Some(authorization_info) = authorization_info {
+        if let Some(authorization_info) = &self.authorization_info {
             debug!("auth set");
             request = request.header(AUTHORIZATION, authorization_info.as_authorization_header_value());
         }
