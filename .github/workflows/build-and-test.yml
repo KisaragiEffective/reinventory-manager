@@ -42,7 +42,6 @@ jobs:
     - name: Setup toolchain
       uses: actions-rs/toolchain@v1.0.6
       with:
-        toolchain: stable
         target: ${{ matrix.target }}
         default: true
     - name: Rust Cache
