@@ -259,8 +259,8 @@ dependencies = [
 
 [[package]]
 name = "fern"
-version = "0.6.2-kisaragieffective-1"
-source = "git+https://github.com/KisaragiEffective/fern?branch=kisaragieffective#d95ccaba36e367d05b1e80ec176586da0113f4f7"
+version = "0.6.2-kisaragieffective-2"
+source = "git+https://github.com/KisaragiEffective/fern?branch=kisaragieffective#2276ffdf573627651c7cd187afabf1195b33b555"
 dependencies = [
  "log",
  "min_colored",
@@ -565,7 +565,10 @@ checksum = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
 [[package]]
 name = "min_colored"
 version = "0.1.0"
-source = "git+https://github.com/KisaragiEffective/fern?branch=kisaragieffective#d95ccaba36e367d05b1e80ec176586da0113f4f7"
+source = "git+https://github.com/KisaragiEffective/fern?branch=kisaragieffective#2276ffdf573627651c7cd187afabf1195b33b555"
+dependencies = [
+ "windows",
+]
 
 [[package]]
 name = "mio"
@@ -1317,6 +1320,15 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows"
+version = "0.46.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdacb41e6a96a052c6cb63a144f24900236121c6f63f4f8219fef5977ecb0c25"
+dependencies = [
+ "windows-targets 0.42.2",
+]
 
 [[package]]
 name = "windows-sys"
