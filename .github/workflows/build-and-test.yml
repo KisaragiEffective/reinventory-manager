@@ -40,10 +40,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup toolchain
-      uses: actions-rs/toolchain@v1.0.6
-      with:
-        target: ${{ matrix.target }}
-        default: true
+      run: |
+        rustup target add '${{ matrix.target }}'
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.2.1
       with:
@@ -51,6 +49,6 @@ jobs:
       env:
         RUST_CACHE_VERSION: cache-v1
     - name: Build (${{ matrix.target }})
-      run: cargo build --verbose
+      run: cargo build --verbose --target=${{ matrix.target }}
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose --target=${{ matrix.target }}
