@@ -11,16 +11,47 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        # Linux (x86_64, GNU)
+        - runner: ubuntu-latest
+          target: x86_64-linux-unknown-gnu
+        # Linux (x86_64, musl)
+        - runner: ubuntu-latest
+          target: x86_64-unknown-linux-musl
+        # Windows (x86_64, GNU)
+        - runner: windows-latest
+          target: x86_64-pc-windows-gnu
+        # Windows (x86_64, MSVC)
+        - runner: windows-latest
+          target: x86_64-pc-windows-msvc
+        # Windows (ARM64, MSVC)
+        - runner: windows-latest
+          target: aarch64-pc-windows-msvc
+        # macOS (x86_64)
+        - runner: macos-latest
+          target: x86_64-apple-darwin
+        # macOS (Apple silicon)
+        - runner: macos-latest
+          target: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
 
     steps:
     - uses: actions/checkout@v3
+    - name: Setup toolchain
+      uses: actions-rs/toolchain@v1.0.6
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+        default: true
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.2.1
       with:
-        prefix-key: ${{ matrix.os }}-${{ env.CI_RUSTC_VERSION }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
-    - name: Build
+        prefix-key: ${{ matrix.target }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+      env:
+        RUST_CACHE_VERSION: cache-v1
+    - name: Build (${{ matrix.target }})
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
