@@ -15,12 +15,12 @@
 ## ダウンロード
 ダウンロードの前に[下記](#ライセンス)をお読みください。
 
-以下のOS向けに予めコンパイルされたバイナリが配布されています。[Releases](https://github.com/KisaragiEffective/neosvr-inventory-management/releases)からダウンロードしてください。古いリリースにはバグが含まれている可能性があるので、基本的には最新のリリースを使用してください。
+利便性のため、x86\_64アーキテクチャを使用した以下のOS向けに予めコンパイルされたバイナリが配布されています。[Releases](https://github.com/KisaragiEffective/neosvr-inventory-management/releases)からダウンロードしてください。古いリリースにはバグが含まれている可能性があるので、基本的には最新のリリースを使用してください。
 * Windows (`*-x86_64-pc-windows-gnu.zip`)
 * Linux (`*-x86_64-unknown-linux-musl.tar.gz`)
 * macOS (`*-x86_64-apple-darwin.zip`)
 
-もし対応していないなど、何らかの事情でセルフコンパイルが必要な場合、`git clone`からこのレポジトリをクローンしてソースコードを入手してください。
+もしx86\_64以外のアーキテクチャや異なるOSを使用しているなどでセルフコンパイルが必要な場合、`git clone`でこのレポジトリからソースコードを入手してください。セキュリティの面からビルドするためにはHTTPS接続をサポートするライブラリが必須です。
 
 ## 使用
 並行ログインに対応しました :tada:
