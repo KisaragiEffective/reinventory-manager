@@ -3,8 +3,18 @@ name: Build and Test
 on:
   push:
     branches: [ "master" ]
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - src/**
+      - .github/workflows/build-and-test.yml
   pull_request:
     branches: [ "master" ]
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - src/**
+      - .github/workflows/build-and-test.yml
 
 env:
   CARGO_TERM_COLOR: always
