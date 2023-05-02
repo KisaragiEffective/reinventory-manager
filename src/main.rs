@@ -13,6 +13,9 @@ mod operation;
 mod model;
 mod cli;
 
+#[cfg(not(any(feature = "https_rustls", feature = "https_os_native")))]
+compile_error!("You must enable HTTPS connection, choose either https_rustls or https_os_native");
+
 #[tokio::main]
 async fn main() {
     let args: Args = Args::parse();

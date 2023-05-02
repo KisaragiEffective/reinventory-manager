@@ -11,16 +11,59 @@ env:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # Linux (x86_64, GNU) - required
+        - runner: ubuntu-latest
+          target: x86_64-unknown-linux-gnu
+          https:  https_rustls
+        # Linux (x86_64, musl) - required
+        - runner: ubuntu-latest
+          target: x86_64-unknown-linux-musl
+          https:  https_rustls
+        # Windows (x86_64, GNU) - required
+        - runner: windows-latest
+          target: x86_64-pc-windows-gnu
+          https:  https_rustls
+        # Windows (x86_64, MSVC)
+        - runner: windows-latest
+          target: x86_64-pc-windows-msvc
+          https:  https_rustls
+        # Windows (ARM64, MSVC)
+        - runner: windows-latest
+          target: aarch64-pc-windows-msvc
+          https:  https_os_native
+        # macOS (x86_64) - required
+        - runner: macos-latest
+          target: x86_64-apple-darwin
+          https:  https_rustls
+        # macOS (Apple silicon)
+        - runner: macos-latest
+          target: aarch64-apple-darwin
+          https:  https_os_native
+    runs-on: ${{ matrix.runner }}
 
     steps:
     - uses: actions/checkout@v3
+    - name: Setup toolchain
+      run: |
+        rustup target add '${{ matrix.target }}'
+    # https://github.com/briansmith/ring/issues/563#issuecomment-676861003
+    - name: Setup musl-tools
+      run: |
+        sudo apt-get -y install musl-tools
+      if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.2.1
       with:
-        prefix-key: ${{ matrix.os }}-${{ env.CI_RUSTC_VERSION }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
-    - name: Build
-      run: cargo build --verbose
+        prefix-key: ${{ matrix.target }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ matrix.https }}-${{ hashFiles('**/Cargo.lock') }}
+      env:
+        RUST_CACHE_VERSION: cache-v1
+    - name: Build (${{ matrix.target }})
+      run: cargo build -F '${{ matrix.https }}' --verbose --target=${{ matrix.target }}
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test -F '${{ matrix.https }}' --verbose --target=${{ matrix.target }}
+      # GitHub runner CPUs are native x86_64, skip test for now
+      if: ${{ matrix.target != 'aarch64-pc-windows-msvc' && matrix.target != 'aarch64-apple-darwin' }}
