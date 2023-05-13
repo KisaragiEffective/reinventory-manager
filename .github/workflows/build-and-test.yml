@@ -66,7 +66,7 @@ jobs:
         sudo apt-get -y install musl-tools
       if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
     - name: Rust Cache
-      uses: Swatinem/rust-cache@v2.2.1
+      uses: Swatinem/rust-cache@v2.3.0
       with:
         prefix-key: ${{ matrix.target }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ matrix.https }}-${{ hashFiles('**/Cargo.lock') }}
       env:
