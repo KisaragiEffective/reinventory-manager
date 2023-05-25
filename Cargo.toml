@@ -20,7 +20,7 @@ categories = ["command-line-utilities"]
 anyhow = "1.0.71"
 async-recursion = "1.0.4"
 is-terminal = "0.4.7"
-base64 = "0.21.1"
+base64 = "0.21.2"
 chrono = { version = "0.4.24", features = ["serde"] }
 clap = { version = "4.3.0", features = ["derive"] }
 derive_more = "0.99.17"
