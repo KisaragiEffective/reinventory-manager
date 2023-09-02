@@ -18,7 +18,7 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.75"
-async-recursion = "1.0.4"
+async-recursion = "1.0.5"
 is-terminal = "0.4.9"
 base64 = "0.21.3"
 chrono = { version = "0.4.28", features = ["serde"] }
