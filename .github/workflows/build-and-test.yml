@@ -56,7 +56,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup toolchain
       run: |
         rustup target add '${{ matrix.target }}'
