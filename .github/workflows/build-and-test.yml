@@ -34,9 +34,10 @@ jobs:
           target: x86_64-unknown-linux-musl
           https:  https_rustls
         # Windows (x86_64, GNU) - required
-        - runner: windows-latest
-          target: x86_64-pc-windows-gnu
-          https:  https_rustls
+        # Temporary disabled
+        # - runner: windows-latest
+        #  target: x86_64-pc-windows-gnu
+        #  https:  https_rustls
         # Windows (x86_64, MSVC)
         - runner: windows-latest
           target: x86_64-pc-windows-msvc
