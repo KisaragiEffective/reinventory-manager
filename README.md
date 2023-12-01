@@ -1,10 +1,12 @@
-# NeosVR Inventory Management
+# Re:inventory manager
 ## Notes to foreign users
 * This readme is written in Japanese. Please use external tool to translate this document into your language. I'm sorry for inconvenience.
 * If this document is translated into a language other than Japanese, the Japanese version will prevail to the extent that there is any conflict.
 
 ## これはなに？
-[NeosVR](https://neos.com)用のインベントリ整理支援ツールです。現在はベータ版となっています。
+※Resoniteにはまだ対応していません
+
+[Neos](https://neos.com)用のインベントリ整理支援ツールです。現在はベータ版となっています。
 
 ## なぜ？
 私が知る限りでは、NeosはWindowsの「エクスプローラー」にあるようなディレクトリ間の移動ができません。
@@ -66,7 +68,7 @@
 
 ##### 入力1
 ```shell
-neosvr-inventory-management --log-level none list -u U-kisaragi-marine Inventory Public
+reinventory-manager --log-level none list -u U-kisaragi-marine Inventory Public
 ```
 
 ##### 出力1
@@ -80,14 +82,14 @@ neosvr-inventory-management --log-level none list -u U-kisaragi-marine Inventory
 
 ##### 入力2
 ```shell
-neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890 move -r R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143 -u U-kisaragi-marine --to Inventory --to Work 2>/dev/null
+reinventory-manager -e kisaragi.marine@gmail.com -p 1234567890 move -r R-65e927ba-d3cf-4d82-b5ec-ef5b1d34e143 -u U-kisaragi-marine --to Inventory --to Work 2>/dev/null
 ```
 
 ##### 出力2
 (なし)
 
 ##### 注意
-* `neosvr-inventory-management -e kisaragi.marine@gmail.com -p 1234567890`で認証を行っています。
+* `reinventory-manager -e kisaragi.marine@gmail.com -p 1234567890`で認証を行っています。
 
 ## コントリビューション
 バグ報告、デバッグ、パッチの送信、ドキュメントの誤字修正など、いかなる形でもコントリビューションをいただければ幸いです。
