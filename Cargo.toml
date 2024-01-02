@@ -17,7 +17,7 @@ categories = ["command-line-utilities"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.78"
+anyhow = "1.0.79"
 async-recursion = "1.0.5"
 is-terminal = "0.4.10"
 base64 = "0.21.5"
