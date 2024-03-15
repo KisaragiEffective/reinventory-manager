@@ -22,7 +22,7 @@ async-recursion = "1.0.5"
 is-terminal = "0.4.12"
 base64 = "0.21.7"
 chrono = { version = "0.4.35", features = ["serde"] }
-clap = { version = "4.5.2", features = ["derive"] }
+clap = { version = "4.5.3", features = ["derive"] }
 derive_more = "0.99.17"
 email_address = "0.2.4"
 fern = { git = "https://github.com/KisaragiEffective/fern", branch = "kisaragieffective", version = "0.6.2-kisaragi-5", features = ["min_colored"] }
