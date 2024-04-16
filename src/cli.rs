@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{bail, Result};
 use fern::colors::ColoredLevelConfig;
-use log::{debug, LevelFilter};
+use log::{debug, LevelFilter, warn};
 use derive_more::{Display, FromStr};
 use is_terminal::IsTerminal;
 use strum::{EnumString, Display as StrumDisplay};
@@ -27,6 +27,8 @@ pub struct Args {
     keep_record_id: bool,
     #[clap(short, long = "color", default_value_t = ColorPolicy::Auto)]
     color_policy: ColorPolicy,
+    #[clap(long)]
+    platform: Option<Platform>,
     #[clap(subcommand)]
     sub_command: ToolSubCommand,
 }
@@ -37,6 +39,12 @@ pub enum ColorPolicy {
     Always,
     Auto,
     Never,
+}
+
+#[derive(EnumString, Display, Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub enum Platform {
+    Neos,
+    Resonite,
 }
 
 #[derive(Serialize, Display, FromStr, Debug, Eq, PartialEq, Clone)]
@@ -87,6 +95,16 @@ impl Args {
             ColorPolicy::Never => false
         };
 
+        let platform = match self.platform {
+            None => {
+                warn!("Deprecated (implicitly implying --platform): in the next major version, the --platform flag would be require to set manually.\
+                To fix this warning, include `--platform Neos` your command line.");
+                Platform::Neos
+            }
+            Some(Platform::Neos) => Platform::Neos,
+            Some(Platform::Resonite) => bail!("Resonite is not supported yet, please see https://github.com/KisaragiEffective/reinventory-manager/issues/386 for progress")
+        };
+
         Ok(AfterArgs {
             login_info,
             sub_command: self.sub_command,
@@ -94,6 +112,7 @@ impl Args {
             read_token_from_stdin: self.read_token_from_stdin,
             keep_record_id: self.keep_record_id,
             colored,
+            platform,
         })
     }
 }
@@ -106,6 +125,7 @@ pub struct AfterArgs {
     pub read_token_from_stdin: bool,
     pub keep_record_id: bool,
     pub colored: bool,
+    pub platform: Platform,
 }
 
 #[derive(Subcommand, Debug, Clone)]

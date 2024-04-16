@@ -5,7 +5,7 @@ use std::io::stdin;
 use std::process::exit;
 use clap::Parser;
 use log::{debug, error, warn};
-use crate::cli::{Args, LogLevel, ToolSubCommand};
+use crate::cli::{Args, LogLevel, Platform, ToolSubCommand};
 use crate::model::{AuthorizationInfo, LoginInfo, SessionToken};
 use crate::operation::PreLogin;
 
@@ -22,6 +22,10 @@ async fn main() {
     let args = args.validate().unwrap();
     if args.log_level != LogLevel::None {
         cli::init_fern(args.log_level).unwrap();
+    }
+
+    if args.platform != Platform::Neos {
+        panic!("it must be validated");
     }
 
     debug!("fern initialized");
