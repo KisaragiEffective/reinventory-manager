@@ -45,7 +45,7 @@ jobs:
         # Windows (ARM64, MSVC)
         - runner: windows-latest
           target: aarch64-pc-windows-msvc
-          https:  https_os_native
+          https:  https_rustls
         # macOS (x86_64) - required
         - runner: macos-latest
           target: x86_64-apple-darwin
