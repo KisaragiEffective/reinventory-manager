@@ -40,7 +40,6 @@ uuid = { version = "1.8.0", features = ["v4"] }
 https_rustls = ["reqwest/rustls-tls-native-roots"]
 # split rules for following targets, because rustls does not support these targets yet:
 # - aarch64-apple-darwin (https://github.com/briansmith/ring/issues/1442)
-# - aarch64-pc-windows-msvc (https://github.com/briansmith/ring/issues/1167)
 # Above targets do not depend on OpenSSL, according to reqwest.
 # NOTE: You will not want to enable this feature if your target is Linux, because it depends on OpenSSL;
 # USE AT YOUR OWN PERIL!!
