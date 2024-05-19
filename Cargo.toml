@@ -2,7 +2,7 @@
 name = "reinventory-manager"
 version = "0.2.1"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.78.0"
 authors = [
     "KisaragiEffective <kisaragi.effective@gmail.com>",
     "kisaragi marine <kisaragi.marine@gmail.com>",
@@ -19,7 +19,6 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.82"
 async-recursion = "1.1.1"
-is-terminal = "0.4.12"
 base64 = "0.22.1"
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive"] }
