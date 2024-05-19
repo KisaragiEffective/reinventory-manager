@@ -1,10 +1,10 @@
+use std::io::IsTerminal;
 use clap::{Parser, Subcommand};
 use email_address::EmailAddress;
 use anyhow::{bail, Result};
 use fern::colors::ColoredLevelConfig;
 use log::{debug, LevelFilter, warn};
 use derive_more::{Display, FromStr};
-use is_terminal::IsTerminal;
 use strum::{EnumString, Display as StrumDisplay};
 use serde::Serialize;
 use crate::model::{AbsoluteInventoryPath, LoginInfo, Password, RecordId, UserId, UserIdentifyPointer};
