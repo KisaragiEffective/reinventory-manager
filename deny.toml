@@ -233,6 +233,8 @@ skip = [
     { name = "wasi", version = "*" },
     { name = "syn", version = "*" },
     { name = "hermit-abi", version = "*" },
+    # awaits new release that contains https://github.com/Peternator7/strum/pull/346
+    { name = "heck", version = "*" }
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
