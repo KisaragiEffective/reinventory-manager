@@ -73,10 +73,7 @@ yanked = "warn"
 notice = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = [
-    # https://github.com/time-rs/time/issues/293#issuecomment-946382614
-    "RUSTSEC-2020-0071",
-]
+ignore = []
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -106,16 +103,10 @@ allow = [
     # common two, why don't we allow? ;)
     "MIT",
     "Apache-2.0",
-    # It is very similar to MIT. FSF said there are some disambiguity, but that's not huge problem for me.
-    "ISC",
     # unicode-ident, dependency of proc-macro2 and syn -- It is also very similar to MIT, except it's own terms.
     # The own terms point two requirements; License notice must be appeared in certain places, and contributor names
     # must not be used to advertising without prior written authorization from them.
     "Unicode-DFS-2016",
-    # encoding_rs
-    "BSD-3-Clause",
-    # ring
-    "OpenSSL",
     # why don't we allow? ;)
     "CC0-1.0"
 ]
