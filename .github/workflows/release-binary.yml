@@ -2,6 +2,10 @@ on:
   release:
     types: [created]
 
+permissions:
+  # create attachments and upload them
+  contents: write
+
 jobs:
   release:
     name: release ${{ matrix.target }}
