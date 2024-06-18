@@ -98,6 +98,8 @@ allow = [
     # The own terms point two requirements; License notice must be appeared in certain places, and contributor names
     # must not be used to advertising without prior written authorization from them.
     "Unicode-DFS-2016",
+    # another Unicode moment :c
+    "Unicode-3.0",
     # why don't we allow? ;)
     "CC0-1.0"
 ]
