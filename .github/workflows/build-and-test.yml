@@ -72,9 +72,9 @@ jobs:
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.7.3
       with:
-        prefix-key: ${{ matrix.target }}-${{ env.CI_RUST_CACHE_VERSION }}-${{ matrix.https }}-${{ hashFiles('**/Cargo.lock') }}
+        prefix-key: rust-build-cache-${{ env.RUST_CACHE_VERSION }}
       env:
-        RUST_CACHE_VERSION: cache-v1
+        RUST_CACHE_VERSION: v1
     - name: Build (${{ matrix.target }})
       run: cargo build -F '${{ matrix.https }}' --verbose --target=${{ matrix.target }}
     - name: Run tests
