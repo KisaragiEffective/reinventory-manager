@@ -183,7 +183,7 @@ deny = [
     # I don't have enough time to track ALL OF THE VULNS -- so here's deal.
     # openssl: once rustls supports ARM64 Windows and ARM64 macOS, this comment out *must* be reverted.
     # other targets doesn't depend to openssl, so this workaround does not affect.
-    # { name = "openssl", version = "*" },
+    { name = "openssl", version = "*" },
     { name = "openssl_sys", version = "*" },
     # well known unreliable unsafes
     { name = "owning_ref", version = "*" },
