@@ -36,7 +36,7 @@ url = { version = "2.5.0", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 
 [features]
-https_rustls = ["reqwest/rustls-tls-native-roots"]
+https_rustls = []
 # split rules for following targets, because rustls does not support these targets yet:
 # - aarch64-apple-darwin (https://github.com/briansmith/ring/issues/1442)
 # Above targets do not depend on OpenSSL, according to reqwest.
