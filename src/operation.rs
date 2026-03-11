@@ -10,8 +10,6 @@ use crate::model::{AuthorizationInfo, DirectoryMetadata, AbsoluteInventoryPath, 
 static BASE_POINT: &str = "https://api.neos.com/api";
 static CLIENT: Lazy<Arc<Client>> = Lazy::new(|| {
     let c = ClientBuilder::new().user_agent("NeosVR-Inventory-Manager/0.1");
-    #[cfg(feature = "https_rustls")]
-    let c = c.use_rustls_tls();
 
     #[cfg(feature = "https_os_native")]
     let c = c.use_native_tls();
