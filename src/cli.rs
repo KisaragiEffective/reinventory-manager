@@ -47,6 +47,22 @@ pub enum Platform {
     Resonite,
 }
 
+impl Platform {
+    pub const fn base_url(self) -> &'static str {
+        match self {
+            Self::Neos => "https://api.neos.com/api",
+            Self::Resonite => "https://api.resonite.com",
+        }
+    }
+
+    pub const fn authorization_scheme(self) -> &'static str {
+        match self {
+            Self::Neos => "neos",
+            Self::Resonite => "res",
+        }
+    }
+}
+
 #[derive(Serialize, Display, FromStr, Debug, Eq, PartialEq, Clone)]
 pub struct OneTimePassword(pub String);
 
@@ -95,15 +111,11 @@ impl Args {
             ColorPolicy::Never => false
         };
 
-        let platform = match self.platform {
-            None => {
-                warn!("Deprecated (implicitly implying --platform): in the next major version, the --platform flag would be require to set manually.\
+        let platform = self.platform.unwrap_or_else(|| {
+            warn!("Deprecated (implicitly implying --platform): in the next major version, the --platform flag would be require to set manually.\
                 To fix this warning, include `--platform Neos` your command line.");
-                Platform::Neos
-            }
-            Some(Platform::Neos) => Platform::Neos,
-            Some(Platform::Resonite) => bail!("Resonite is not supported yet, please see https://github.com/KisaragiEffective/reinventory-manager/issues/386 for progress")
-        };
+            Platform::Neos
+        });
 
         Ok(AfterArgs {
             login_info,
@@ -196,6 +208,23 @@ impl From<LogLevel> for LevelFilter {
             LogLevel::Warn => Self::Warn,
             LogLevel::Info => Self::Info,
             LogLevel::Debug => Self::Debug,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_both_platforms_and_preserves_default() {
+        for (option, expected) in [(Some("Resonite"), Platform::Resonite), (Some("Neos"), Platform::Neos), (None, Platform::Neos)] {
+            let mut arguments = vec!["reinventory-manager"];
+            if let Some(platform) = option {
+                arguments.extend(["--platform", platform]);
+            }
+            arguments.push("list");
+            assert_eq!(Args::try_parse_from(arguments).unwrap().validate().unwrap().platform, expected);
         }
     }
 }

@@ -4,9 +4,7 @@
 * If this document is translated into a language other than Japanese, the Japanese version will prevail to the extent that there is any conflict.
 
 ## これはなに？
-※Resoniteにはまだ対応していません
-
-[Neos](https://neos.com)用のインベントリ整理支援ツールです。現在はベータ版となっています。
+[Neos](https://neos.com)・[Resonite](https://resonite.com)用のインベントリ整理支援ツールです。現在はベータ版となっています。
 
 ## なぜ？
 私が知る限りでは、NeosはWindowsの「エクスプローラー」にあるようなディレクトリ間の移動ができません。
@@ -61,7 +59,9 @@
   * `error`: エラーを表示
   * `none`: すべてのログを抑制
 * `--platform`: プラットフォームを指定
-  * `--platform Neos`: NeosVRのアカウントを操作 
+  * `--platform Neos`: NeosVRのアカウントを操作
+  * `--platform Resonite`: Resoniteのアカウントを操作
+  * 省略時は Neos を使用（非推奨）
 * `-h` or `--help`: ヘルプを表示
 
 ### 例
@@ -74,7 +74,7 @@ reinventory-manager --log-level none list -u U-kisaragi-marine Inventory Public
 ```
 
 ##### 出力1
-(インベントリの各アイテムごとのJSON、1行に1アイテム)
+(インベントリの各アイテムごとのJSONL、1行に1アイテム)
 
 ##### 注意1
 * `--log-level none` でログの出力を抑制しています。

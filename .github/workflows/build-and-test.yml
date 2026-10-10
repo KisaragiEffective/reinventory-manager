@@ -69,6 +69,10 @@ jobs:
       run: |
         sudo apt-get -y install musl-tools
       if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+    - name: Configure CMake
+      shell: pwsh
+      run: |
+        "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.8.2
       with:
