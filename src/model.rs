@@ -5,11 +5,9 @@ use derive_more::{Display, FromStr};
 use std::str::FromStr;
 use email_address::EmailAddress;
 use serde::{Serialize, Deserialize, Deserializer};
-use serde::de::Error;
 use anyhow::ensure;
 use base64::Engine;
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
-use log::debug;
 use uuid::Uuid;
 use crate::cli::OneTimePassword;
 
@@ -116,6 +114,25 @@ pub struct UserLoginPostBody {
 
 /// response: POST /userSessions
 impl UserLoginPostBody {
+    pub fn for_platform(self, platform: crate::cli::Platform) -> serde_json::Value {
+        if platform == crate::cli::Platform::Neos {
+            return serde_json::to_value(self).expect("login body must be serializable");
+        }
+        let LoginInfo::ByPassword { user_identify_pointer, password, .. } = self.login_method else {
+            unreachable!("token authentication does not create a login request")
+        };
+        let mut body = serde_json::json!({
+            "authentication": { "$type": "password", "password": password },
+            "secretMachineId": self.generated_machine_id,
+            "rememberMe": self.remember_me,
+        });
+        match user_identify_pointer {
+            UserIdentifyPointer::Email { email } => body["email"] = serde_json::json!(email),
+            UserIdentifyPointer::UserId { user_id } => body["userId"] = serde_json::json!(user_id),
+        }
+        body
+    }
+
     pub fn create(login_method: LoginInfo, remember_me: bool) -> Self {
         use base64::engine::GeneralPurpose as Base64Engine;
         let random_uuid = Uuid::new_v4().to_string();
@@ -157,9 +174,8 @@ pub struct AuthorizationInfo {
 }
 
 impl AuthorizationInfo {
-    pub fn as_authorization_header_value(&self) -> String {
-        let val = format!("neos {owner_id}:{auth_token}", owner_id = self.owner_id.0, auth_token = self.token.0);
-        debug!("auth: {val}");
+    pub fn as_authorization_header_value(&self, platform: crate::cli::Platform) -> String {
+        let val = format!("{scheme} {owner_id}:{auth_token}", scheme = platform.authorization_scheme(), owner_id = self.owner_id.0, auth_token = self.token.0);
         val
     }
 
@@ -190,28 +206,70 @@ pub enum RecordOwner {
     Group(GroupId),
 }
 
-#[derive(Display, Serialize, Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum RecordType {
     Directory,
     Object,
     Texture,
     Audio,
-    Link
+    Link,
+    Other(String),
+}
+
+impl Display for RecordType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Directory => "Directory",
+            Self::Object => "Object",
+            Self::Texture => "Texture",
+            Self::Audio => "Audio",
+            Self::Link => "Link",
+            Self::Other(value) => value,
+        })
+    }
+}
+
+impl Serialize for RecordType {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
 }
 
 impl<'de> Deserialize<'de> for RecordType {
-    fn deserialize<D>(deserializer: D) -> anyhow::Result<Self, D::Error> where D: Deserializer<'de> {
-        match String::deserialize(deserializer)?.as_str() {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+        Ok(match value.to_ascii_lowercase().as_str() {
             // this is INTENTIONALLY loose, as the API *may* returns both uppercase and lowercase variant.
             // This does not seem to have rule(s), so I chose let this side be loose.
-            "directory" | "Directory" => Ok(Self::Directory),
-            "object" | "Object" => Ok(Self::Object),
-            "texture" | "Texture" => Ok(Self::Texture),
-            "audio" | "Audio" => Ok(Self::Audio),
-            "link" | "Link" => Ok(Self::Link),
-            _ => Err(Error::custom("dir | obj | text | aud | lnk")),
-        }
+            "directory" | "Directory" => Self::Directory,
+            "object" | "Object" => Self::Object,
+            "texture" | "Texture" => Self::Texture,
+            "audio" | "Audio" => Self::Audio,
+            "link" | "Link" => Self::Link,
+            _ => Self::Other(value),
+        })
     }
+}
+
+// Retain the wire format so records can be sent back to the selected API.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum RecordVersion {
+    Resonite { version: VersionMetadata },
+    Neos(VersionMetadata),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VersionMetadata {
+    pub global_version: i32,
+    pub local_version: i32,
+    #[serde(rename = "lastModifyingUserId", default)]
+    // 壊れたフォルダーだと欠けている場合がある (?!)
+    pub last_update_by: Option<UserId>,
+    #[serde(rename = "lastModifyingMachineId", default)]
+    // Essential Toolsだと欠けている
+    pub last_update_machine: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -228,14 +286,8 @@ pub struct Record {
     /// This field is absent when self.record_type == "directory"
     #[serde(default)]
     pub asset_uri: Option<Url>,
-    pub global_version: i32,
-    pub local_version: i32,
-    #[serde(rename = "lastModifyingUserId", default)]
-    // 壊れたフォルダーだと欠けている場合がある (?!)
-    pub last_update_by: Option<UserId>,
-    #[serde(rename = "lastModifyingMachineId", default)]
-    // Essential Toolsだと欠けている
-    pub last_update_machine: Option<String>,
+    #[serde(flatten)]
+    pub version: RecordVersion,
     pub name: String,
     pub record_type: RecordType,
     #[serde(default)]
@@ -244,11 +296,14 @@ pub struct Record {
     #[serde(default)]
     // Essential Toolsだと欠けている
     pub tags: Vec<String>,
+    #[serde(default)]
     pub path: String,
     pub is_public: bool,
     pub is_for_patrons: bool,
     pub is_listed: bool,
     pub is_deleted: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_read_only: Option<bool>,
     #[serde(default)]
     // Essential Toolsだと欠けている
     pub thumbnail_uri: Option<Url>,
@@ -362,5 +417,103 @@ impl FromStr for AbsoluteInventoryPath {
 impl Display for AbsoluteInventoryPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_absolute_path().as_str())
+    }
+}
+
+#[cfg(test)]
+mod platform_tests {
+    use super::*;
+    use crate::cli::Platform;
+
+    #[test]
+    fn authentication_matches_selected_platform() {
+        let auth = AuthorizationInfo::new(UserId("U-test".into()), SessionToken::new("token".into()));
+        assert_eq!(auth.as_authorization_header_value(Platform::Neos), "neos U-test:token");
+        assert_eq!(auth.as_authorization_header_value(Platform::Resonite), "res U-test:token");
+        for pointer in [UserIdentifyPointer::email("test@example.com".parse().unwrap()), UserIdentifyPointer::user_id(UserId("U-test".into()))] {
+            let login = LoginInfo::ByPassword { user_identify_pointer: pointer.clone(), password: Password("secret".into()), totp: None };
+            let neos = UserLoginPostBody::create(login.clone(), false).for_platform(Platform::Neos);
+            assert_eq!(neos["password"], "secret");
+            let resonite = UserLoginPostBody::create(login, false).for_platform(Platform::Resonite);
+            assert_eq!(resonite["authentication"]["$type"], "password");
+            assert_eq!(resonite["authentication"]["password"], "secret");
+            assert!(resonite.get("password").is_none());
+            match pointer {
+                UserIdentifyPointer::Email { .. } => assert_eq!(resonite["email"], "test@example.com"),
+                UserIdentifyPointer::UserId { .. } => assert_eq!(resonite["userId"], "U-test"),
+            }
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod record_tests {
+    use super::*;
+
+    fn record_json() -> serde_json::Value {
+        serde_json::json!({
+            "id": "R-test", "name": "test", "recordType": "Object",
+            "assetUri": "resdb:///test", "ownerId": "U-test",
+            "isPublic": false, "isForPatrons": false, "isListed": false,
+            "isDeleted": false, "isReadOnly": true,
+            "lastModificationTime": "2026-10-11T00:00:00Z",
+            "randomOrder": 0, "visits": 0, "rating": 0.0,
+            "version": {"globalVersion": 7, "localVersion": 3, "lastModifyingUserId": "U-test"}
+        })
+    }
+
+    #[test]
+    fn resonite_records_preserve_nested_version_and_read_only() {
+        let original = record_json();
+        let record: Record = serde_json::from_value(original.clone()).unwrap();
+        assert_eq!(record.path, "");
+        assert!(record.tags.is_empty());
+        let output = serde_json::to_value(record).unwrap();
+        assert_eq!(output["version"]["globalVersion"], 7);
+        assert_eq!(output["version"]["localVersion"], 3);
+        assert_eq!(output["version"]["lastModifyingUserId"], "U-test");
+        assert_eq!(output["isReadOnly"], true);
+        assert!(output.get("globalVersion").is_none());
+    }
+
+    #[test]
+    fn neos_records_keep_flat_version_and_existing_path() {
+        let mut original = record_json();
+        let version = original.as_object_mut().unwrap().remove("version").unwrap();
+        original.as_object_mut().unwrap().extend(version.as_object().unwrap().clone());
+        original.as_object_mut().unwrap().remove("isReadOnly");
+        original["path"] = serde_json::json!("Inventory\\Test");
+        let record: Record = serde_json::from_value(original).unwrap();
+        assert_eq!(record.path, "Inventory\\Test");
+        let output = serde_json::to_value(record).unwrap();
+        assert_eq!(output["globalVersion"], 7);
+        assert_eq!(output["localVersion"], 3);
+        assert!(output.get("version").is_none());
+        assert!(output.get("isReadOnly").is_none());
+    }
+
+    #[test]
+    fn additional_record_types_round_trip_without_losing_their_names() {
+        for kind in ["World", "world", "Mesh", "Material", "FutureRecordType"] {
+            let mut json = record_json();
+            json["recordType"] = serde_json::json!(kind);
+            let record: Record = serde_json::from_value(json).unwrap();
+            assert_eq!(record.record_type, RecordType::Other(kind.into()));
+            assert_eq!(serde_json::to_value(record).unwrap()["recordType"], kind);
+        }
+        for kind in ["Directory", "directory", "DIRECTORY"] {
+            let record_type: RecordType = serde_json::from_value(serde_json::json!(kind)).unwrap();
+            assert_eq!(record_type, RecordType::Directory);
+        }
+    }
+
+    #[test]
+    fn malformed_or_missing_versions_are_rejected() {
+        for version in [serde_json::Value::Null, serde_json::json!({"globalVersion":7}), serde_json::json!({"globalVersion":"invalid", "localVersion":3})] {
+            let mut record = record_json();
+            record["version"] = version;
+            assert!(serde_json::from_value::<Record>(record).is_err());
+        }
     }
 }

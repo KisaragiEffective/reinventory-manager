@@ -5,10 +5,11 @@ use std::io::stdin;
 use std::process::exit;
 use clap::Parser;
 use log::{debug, error, warn};
-use crate::cli::{Args, LogLevel, Platform, ToolSubCommand};
+use crate::cli::{Args, LogLevel, ToolSubCommand};
 use crate::model::{AuthorizationInfo, LoginInfo, SessionToken};
 use crate::operation::PreLogin;
 
+mod http_response;
 mod operation;
 mod model;
 mod cli;
@@ -22,10 +23,6 @@ async fn main() {
     let args = args.validate().unwrap();
     if args.log_level != LogLevel::None {
         cli::init_fern(args.log_level).unwrap();
-    }
-
-    if args.platform != Platform::Neos {
-        panic!("it must be validated");
     }
 
     debug!("fern initialized");
@@ -42,13 +39,19 @@ async fn main() {
                 exit(1)
             }
             let auth = AuthorizationInfo::new(user_id.clone(), SessionToken::new(buf));
-            PreLogin::from_session_data(Some(user_id), Some(auth))
+            PreLogin::from_session_data(args.platform, Some(user_id), Some(auth))
         } else {
             unreachable!("Arguments validation must be done at this point")
         }
     } else {
         debug!("login...");
-        let pre = PreLogin::login(args.login_info).await;
+        let pre = match PreLogin::login(args.platform, args.login_info).await {
+            Ok(client) => client,
+            Err(error) => {
+                eprintln!("{error}");
+                exit(1);
+            }
+        };
         debug!("done.");
         pre
     };
