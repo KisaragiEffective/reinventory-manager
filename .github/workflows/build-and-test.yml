@@ -74,7 +74,7 @@ jobs:
       run: |
         "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
     - name: Rust Cache
-      uses: Swatinem/rust-cache@v2.8.2
+      uses: Swatinem/rust-cache@v2.9.2
       with:
         prefix-key: rust-build-cache-${{ env.RUST_CACHE_VERSION }}
       env:
