@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 on:
   release:
     types: [created]
@@ -23,7 +25,7 @@ jobs:
             target: x86_64-apple-darwin
             archive: zip
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Install target
         run: rustup target add '${{ matrix.target }}'
       - name: Install musl tools

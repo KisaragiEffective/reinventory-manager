@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: Build and Test
 
 on:
@@ -60,7 +62,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
     - name: Setup toolchain
       run: |
         rustup target add '${{ matrix.target }}'

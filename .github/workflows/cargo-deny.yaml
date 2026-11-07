@@ -1,3 +1,5 @@
+# This workflow is managed by gh actions-lock.
+
 name: Run cargo deny check
 
 permissions:
@@ -28,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
     - name: Install cargo-deny (pre-built)
       run: |
         git_tag="0.19.0"
