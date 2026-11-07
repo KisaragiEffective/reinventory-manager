@@ -21,7 +21,7 @@ anyhow = "1.0.82"
 base64 = "0.23.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive"] }
-derive_more = "0.99.17"
+derive_more = { version = "2.0.0", features = ["from_str", "display"] }
 email_address = "=0.2.9"
 fern = { version = "0.7.1", features = ["colored"] }
 log = "0.4.21"
