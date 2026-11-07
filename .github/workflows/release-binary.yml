@@ -3,29 +3,77 @@ on:
     types: [created]
 
 permissions:
-  # create attachments and upload them
   contents: write
 
 jobs:
   release:
     name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-gnu
+          - runner: ubuntu-latest
+            target: x86_64-pc-windows-gnu
             archive: zip
-          - target: x86_64-unknown-linux-musl
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
             archive: tar.gz tar.xz
-          - target: x86_64-apple-darwin
+          - runner: macos-latest
+            target: x86_64-apple-darwin
             archive: zip
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
+      - uses: actions/checkout@v7
+      - name: Install target
+        run: rustup target add '${{ matrix.target }}'
+      - name: Install musl tools
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt-get install --yes musl-tools
+      - name: Install cross-compilation tools
+        if: ${{ matrix.target == 'x86_64-pc-windows-gnu' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes gcc-mingw-w64-x86-64
+      - name: Build Windows binary
+        if: ${{ matrix.target == 'x86_64-pc-windows-gnu' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+        run: >-
+          cargo build --release --locked --features https_rustls
+          --target '${{ matrix.target }}'
+      - name: Build binary
+        if: ${{ matrix.target != 'x86_64-pc-windows-gnu' }}
+        run: >-
+          cargo build --release --locked --features https_rustls
+          --target '${{ matrix.target }}'
+      - name: Package release
+        env:
+          TARGET: ${{ matrix.target }}
+          ARCHIVE: ${{ matrix.archive }}
+        run: |
+          mkdir -p dist
+          if [[ "$TARGET" == *windows* ]]; then
+            cp "target/$TARGET/release/reinventory-manager.exe" dist/
+          else
+            cp "target/$TARGET/release/reinventory-manager" dist/
+          fi
+
+          if [[ "$ARCHIVE" == "zip" ]]; then
+            zip -j \
+              "dist/reinventory-manager-${GITHUB_REF_NAME}-${TARGET}.zip" \
+              dist/reinventory-manager*
+          else
+            tar -C dist -czf \
+              "dist/reinventory-manager-${GITHUB_REF_NAME}-${TARGET}.tar.gz" \
+              reinventory-manager
+            tar -C dist -cJf \
+              "dist/reinventory-manager-${GITHUB_REF_NAME}-${TARGET}.tar.xz" \
+              reinventory-manager
+          fi
+        shell: bash
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release upload "$GITHUB_REF_NAME"
+          dist/reinventory-manager-${GITHUB_REF_NAME}-${{ matrix.target }}.*
