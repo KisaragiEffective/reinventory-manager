@@ -114,6 +114,7 @@ confidence-threshold = 0.65
 exceptions = [
     # Each entry is the crate and version constraint, and its specific allow
     # list
+    { allow = ["MPL-2.0"], name = "colored", version = "=2.2.0" },
     #{ allow = ["Zlib"], name = "adler32", version = "*" },
 ]
 
